@@ -1,0 +1,166 @@
+header{
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: 20px 40px;
+ background-color: white;
+ border-bottom: 4px solid #07A0C3;
+ position: sticky;
+ top: 0;
+ z-index: 10;
+}
+header a{
+ text-decoration: none;
+}
+header img{
+ height: 50px;
+}
+nav{
+ display: flex;
+ gap: 24px;
+}
+nav a{
+ font-size: 18px;
+ color: #120309;
+}
+nav a:hover{
+ color: #086788;
+}
+.purposebanner{
+ padding: 60px 40px;
+ background-color: white;
+ text-align: center;
+}
+.purposebanner h1{
+ font-size: 48px;
+ color: #086788;
+ margin-bottom: 10px;
+}
+.purposebanner p{
+ font-size: 20px;
+ color: #120309;
+}
+.problem{
+ padding: 60px 40px;
+ background-color: #07A0C3;
+ text-align: center;
+}
+.problem h2{
+ font-size: 36px;
+ color: #120309;
+}
+.problemlist{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: center;
+ gap: 24px;
+ margin-top: 30px;
+}
+.problemcard{
+ width: 260px;
+ padding: 24px;
+ background-color: white;
+ border-radius: 12px;
+}
+.problemcard h3{
+ color: #086788;
+}
+.problemcard p{
+ color: #120309;
+}
+.solution{
+ padding: 60px 40px;
+ background-color: #B6C949;
+ text-align: center;
+}
+.solution h2{
+ font-size: 36px;
+ color: #120309;
+}
+.solutionlist{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: center;
+ gap: 24px;
+ margin-top: 30px;
+}
+.solutioncard{
+ width: 340px;
+ padding: 30px;
+ background-color: white;
+ border: 2px solid #086788;
+ border-top: 8px solid #086788;
+ border-radius: 12px;
+}
+.solutioncard h3{
+ font-size: 24px;
+ color: #086788;
+}
+.solutioncard p{
+ font-size: 17px;
+ line-height: 1.5;
+ color: #120309;
+}
+.goal{
+ padding: 60px 40px;
+ background-color: white;
+ text-align: center;
+}
+.goal h2{
+ font-size: 36px;
+ color: #086788;
+}
+.goal p{
+ max-width: 750px;
+ margin: 0 auto;
+ font-size: 18px;
+ line-height: 1.6;
+ color: #120309;
+}
+.purposecta{
+ padding: 60px 40px;
+ background-color: #086788;
+ color: white;
+ text-align: center;
+}
+.purposecta h2{
+ font-size: 36px;
+}
+.purposecta p{
+ font-size: 18px;
+ margin-bottom: 30px;
+}
+.buttonsignup{
+ display: inline-block;
+ padding: 14px 28px;
+ border-radius: 8px;
+ font-size: 18px;
+ font-weight: bold;
+ text-decoration: none;
+ background-color: #B6C949;
+ color: #120309;
+}
+.buttonsignup:hover{
+ background-color: #07A0C3;
+}
+footer{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: space-between;
+ align-items: center;
+ gap: 16px;
+ padding: 24px 40px;
+ background-color: #120309;
+ color: white;
+}
+footer p{
+ margin: 0;
+}
+footer a{
+ color: white;
+ font-size: 16px;
+ text-decoration: none;
+}
+footer a:hover{
+ color: #07A0C3;
+}

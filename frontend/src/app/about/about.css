@@ -1,0 +1,169 @@
+header{
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: 20px 40px;
+ background-color: white;
+ border-bottom: 4px solid #07A0C3;
+ position: sticky;
+ top: 0;
+ z-index: 10;
+}
+header a{
+ text-decoration: none;
+}
+header img{
+ height: 50px;
+}
+nav{
+ display: flex;
+ gap: 24px;
+}
+nav a{
+ font-size: 18px;
+ color: #120309;
+}
+nav a:hover{
+ color: #086788;
+}
+.aboutbanner{
+ padding: 60px 40px;
+ background-color: white;
+ text-align: center;
+}
+.aboutbanner h1{
+ font-size: 48px;
+ color: #086788;
+ margin-bottom: 10px;
+}
+.aboutbanner p{
+ font-size: 20px;
+ color: #120309;
+}
+.ourstory{
+ padding: 60px 40px;
+ background-color: #07A0C3;
+ text-align: center;
+}
+.ourstory h2{
+ font-size: 36px;
+ color: #120309;
+}
+.ourstory p{
+ max-width: 750px;
+ margin: 0 auto;
+ font-size: 18px;
+ line-height: 1.6;
+ color: #120309;
+}
+.values{
+ padding: 60px 40px;
+ background-color: #B6C949;
+ text-align: center;
+}
+.values h2{
+ font-size: 36px;
+ color: #120309;
+}
+.valuelist{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: center;
+ gap: 24px;
+ margin-top: 30px;
+}
+.value{
+ width: 260px;
+ padding: 24px;
+ background-color: white;
+ border: 2px solid #086788;
+ border-radius: 12px;
+}
+.value h3{
+ color: #086788;
+}
+.value p{
+ color: #120309;
+}
+.team {
+ padding: 60px 40px;
+ background-color: white;
+ text-align: center;
+}
+.team h2{
+ font-size: 36px;
+ color: #086788;
+}
+.teamlist{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: center;
+ gap: 24px;
+ margin-top: 30px;
+}
+.member{
+ width: 260px;
+ padding: 24px;
+ background-color: white;
+ border: 2px solid #086788;
+ border-top: 8px solid #B6C949;
+ border-radius: 12px;
+}
+.member h3{
+ color: #086788;
+ margin-bottom: 4px;
+}
+.role{
+ font-weight: bold;
+ color: #096B72;
+}
+.member p{
+ color: #120309;
+}
+.aboutcta{
+ padding: 60px 40px;
+ background-color: #086788;
+ color: white;
+ text-align: center;
+}
+.aboutcta h2{
+ font-size: 36px;
+}
+.aboutcta p{
+ font-size: 18px;
+ margin-bottom: 30px;
+}
+.buttonsignup{
+ display: inline-block;
+ padding: 14px 28px;
+ border-radius: 8px;
+ font-size: 18px;
+ font-weight: bold;
+ text-decoration: none;
+ background-color: #B6C949;
+ color: #120309;
+}
+.buttonsignup:hover{
+ background-color: #07A0C3;
+}
+footer{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: space-between;
+ align-items: center;
+ gap: 16px;
+ padding: 24px 40px;
+ background-color: #120309;
+ color: white;
+}
+footer p{
+ margin: 0;
+}
+footer a{
+ color: white;
+ font-size: 16px;
+ text-decoration: none;
+}
+footer a:hover{
+ color: #07A0C3;
+}
