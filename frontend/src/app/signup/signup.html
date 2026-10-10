@@ -1,1 +1,319 @@
-<p>signup works!</p>
+<section class="onboarding">
+ <div class="card">
+  <div class="cardtop">
+   <div>
+    @if (step() > 0) {
+     <p class="steplabel">Step {{ step() }} of 5</p>
+    }
+    @if (step() === 0) {
+     <h1>Create Your Account</h1>
+     <p class="subtile">Start by creating your ProxiBin account.</p>
+    }
+    </div>
+   <a routerLink="/" class="cardlogo"><img src="proxibin-logo.svg" alt="ProxiBin home"></a>
+  </div>
+  @if (step() === 0) {
+   <div class="field">
+    <label for="email">Email</label>
+    <input id="email" type="email" [(ngModel)]="email">
+    @if (emailError) {
+     <p class="fielderror">{{ emailError }}</p>
+    }
+   </div>
+   <div class="field">
+    <label for="password">Password</label>
+    <input id="password" type="password" [(ngModel)]="password">
+    @if (passwordError) {
+     <p class="fielderror">{{ passwordError }}</p>
+    }
+   </div>
+   @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+   }
+   <p class="divider">or continue with:</p>
+   <button class="buttonprovider" (click)="signInWithGoogle()">
+    <img src="google-logo.svg" alt="">
+    Google
+   </button>
+   <button class="buttonprovider" (click)="signInWithMicrosoft()">
+    <img src="ms-logo.svg" alt="">
+    Microsoft
+   </button>
+   <div class="stepbuttons">
+    <a routerLink="/" class="buttonback">Back</a>
+    <button class="buttoncontinue" (click)="createAccount()">Create Account</button>
+   </div>
+   <p class="switch">Already have an account? <a routerLink="/signin">Sign In</a></p>
+  }
+  @if (step() === 1) {
+   <h1>Resident Information</h1>
+   <p class="subtitle">Tell us a little about yourself.</p>
+   <div class="row">
+    <div class="field">
+     <label for="firstName">First Name</label>
+     <input id="firstName" type="text" [(ngModel)]="firstName">
+     @if (firstNameError) {
+      <p class="fielderror">{{ firstNameError }}</p>
+     }
+    </div>
+    <div class="field">
+      <label for="lastName">Last Name</label>
+      <input id="lastName" type="text" [(ngModel)]="lastName">
+      @if (lastNameError) {
+       <p class="fielderror">{{ lastNameError }}</p>
+      }
+    </div>
+   </div>
+   <div class="field">
+    <label for="street">Street Address</label>
+    <input id="street" type="text" [(ngModel)]="street">
+    @if (streetError) {
+     <p class="fielderror">{{ streetError }}</p>
+    }
+   </div>
+   <div class="row"> 
+    <div class="field">
+     <label for="town">Town</label>
+     <input id="town" type="text" [(ngModel)]="town">
+     @if (townError) {
+      <p class="fielderror">{{ townError }}</p>
+     }
+    </div>
+    <div class="field">
+     <label for="state">State</label>
+     <input id="state" type="text" [(ngModel)]="state"readonly>
+    </div>
+    <div class="field">
+     <label for="zipcode">Zip Code</label>
+     <input id="zipcode" type="text" inputmode="numeric" maxlength="5" [(ngModel)]="zipcode">
+     @if (zipcodeError) {
+      <p class="fielderror">{{ zipcodeError }}</p>
+     }
+    </div>
+   </div>
+   <div class="field">
+    <label for="phone">Phone</label>
+    <input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="1234567890" [(ngModel)]="phone">
+    @if (phoneError) {
+     <p class="fielderror">{{ phoneError }}</p>
+    }
+   </div>
+   <div class="field">
+    <label for="ownerType">Home Type</label>
+    <select id="ownerType" [(ngModel)]="ownerType">
+     <option value="">Choose one</option>
+     <option value="rent">Rent</option>
+     <option value="own">Own</option>
+    </select>
+    @if (ownerTypeError) {
+     <p class="fielderror">{{ ownerTypeError }}</p>
+    }
+   </div>
+   <label class="bigcheckbox">
+    <input type="checkbox" [(ngModel)]="ageConfirmed">
+    <span>
+     I confirm I am 18 years or older and agree to the
+     <a routerLink="/privacy" target="_blank">Terms of Service</a>
+    </span>
+   </label>
+   @if (ageError) {
+    <p class="fielderror">{{ ageError }}</p>
+   }
+   @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+   }  
+   <div class="stepbuttons">
+    <button class="buttonback" (click)="backToAccount()">Back</button>
+    <button class="buttoncontinue" (click)="saveStep1()">Save &amp; Continue</button>
+   </div>
+  }
+  @if (step() === 2) {
+   <h1>Service Area Check</h1>
+   <p class="subtitle">We are making sure ProxiBin is available at your address.</p>
+   <p class="address">{{ street }}, {{ town }}, {{ state }} {{ zipcode }}</p>
+   @if (checking()) {
+    <p class="checking">Checking service area...</p>
+   } @else if (inServiceArea()) {
+    <p class="success">Great news! ProxiBin is available in your area.</p>
+   } @else if (!errorMessage()) {
+    <p class="notavailable">ProxiBin isn't available in your area yet.</p>
+   }
+   @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+   }
+   <div class="stepbuttons">
+    <button class="buttonback" (click)="goBack()">Back</button>
+    <button class="buttoncontinue" (click)="saveStep2()" [disabled]="!inServiceArea()">Save &amp; Contiune</button>
+   </div>
+  }
+  @if (step() === 3) { 
+   <h1>Select Your Hauler</h1>
+   <p class="subtitle">Choose the hauler that currently picks up your trash and recycling.</p>
+   <div class="haulerlist">
+    @for (hauler of haulers(); track hauler.id) {
+     <label class="haulercard">
+      <input
+       type="radio"
+       name="hauler"
+       [checked]="selectedHaulerId === hauler.id"
+       (change)="selectHauler(hauler)">
+      {{ hauler.name }}
+     </label>
+    }
+    @if (haulerError) {
+     <p class="fielderror">{{ haulerError }}</p>
+    }
+   </div>
+   @if (isXcel()) {
+    <h2>Your Pickup Schedule</h2>
+    <div class="schedule">
+     <p><strong>Garbage:</strong> Monday and Thursday</p>
+     <p><strong>Recycling:</strong> Wednesday, every other week</p>
+    </div>
+    <p class="question">Does this pickup schedule match your service?</p>
+    <label class="bigcheckbox">
+     <input type="checkbox" [(ngModel)]="scheduleConfirmed"> 
+     <span>Yes, this matches my service.</span>
+    </label>
+    @if (confirmError) {
+     <p class="fielderror">{{ confirmError }}</p>
+    }
+   }
+   @if (selectedHaulerId !== '' && !isXcel()) {
+    <h2>Set Your Collection Schedule</h2>
+    <div class="row">
+     <div class="field">
+      <label for="garbageDay1">Garbage Pickup Day</label>
+      <select id="garbageDay1" [(ngModel)]="garbageDay1">
+       <option value="">Choose a day</option>
+       @for (day of weekdays; track day) {
+        <option [value]="day">{{ day }}</option>
+       }
+      </select>
+      @if (garbageDay1Error) {
+       <p class="fielderror">{{ garbageDay1Error }}</p>
+      }
+     </div>
+     <div class="field">
+      <label for="garbageDay2">Second Garbage Day (optional)</label>
+      <select id="garbageDay2" [(ngModel)]="garbageDay2">
+       <option value="">None</option>
+       @for (day of weekdays; track day) {
+        <option [value]="day">{{ day }}</option>
+       }
+      </select>
+      @if (garbageDay2Error) {
+       <p class="fielderror">{{ garbageDay2Error }}</p>
+      }
+     </div>
+    </div>
+    <div class="row">
+     <div class="field">
+       <label for="recyclingDay">Recycling Pickup Day</label>
+       <select id="recyclingDay" [(ngModel)]="recyclingDay">
+        <option value="">Choose a day</option>
+        @for (day of weekdays; track day) {
+         <option [value]="day">{{ day }}</option>
+        }
+       </select>
+       @if (recyclingDayError) {
+        <p class="fielderror">{{ recyclingDayError }}</p>
+       }
+     </div>
+     <div class="field">
+      <label for="recyclingFrequency">Recycling Frequency</label>
+      <select id="recyclingFrequency" [(ngModel)]="recyclingFrequency">
+       <option value="">Choose how often</option>
+       <option value="weekly">Every week</option>
+       <option value="biweekly">Every other week</option>
+      </select>
+      @if (recyclingFrequencyError) {
+       <p class="fielderror">{{ recyclingFrequencyError }}</p>
+      }
+     </div>
+    </div>
+   }
+   @if (errorMessage()) {
+    <p class="erro">{{ errorMessage() }}</p>
+   }
+   <div class="stepbuttons">
+    <button class="buttonback" (click)="goBack()">Back</button>
+    <button class="buttoncontinue" (click)="saveStep3()">Save &amp; Continue</button>
+   </div>
+  }   
+  @if (step() === 4) {
+   <h1>Email Alerts</h1>
+   <p class="subtitle">Choose whether you would like to be contacted by ProxiBin to send you email updates.</p>
+   <div class="alertinfo">
+    <p><strong>Email alerts let you know when:</strong></p>
+    <ul>
+     <li>Your truck is getting close to your home</li>
+     <li>Your pickup is running late</li>
+     <li>Your hauler replies to an issue you reported</li>
+    </ul>
+   </div>
+   <label class="alerttoggle">
+    <input type="checkbox" [(ngModel)]="emailAlerts">
+    Send me email alerts
+    @if (emailAlerts) {
+     <span class="status on">On</span>
+    } @else {
+     <span class="status off">Off</span>
+    }
+   </label>
+   <p class="note">You can change this anytime from your dashboard.</p>
+   @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+   }
+   <div class="stepbuttons">
+    <button class="buttonback" (click)="goBack()">Back</button>
+    <button class="buttoncontinue" (click)="saveStep4()">Save &amp; Continue</button>
+   </div>
+  }    
+  @if (step() === 5) {
+   @if (setupComplete()) {
+    <h1>You Are All Set!</h1>
+    <p class="subtitle">Your ProxiBin setup is complete. Here is a summary of what you have saved.</p>
+    <div class="summary">
+     <p><strong>Name:</strong> {{ firstName }} {{ lastName }}</p>
+     <p><strong>Address:</strong> {{ street }}, {{ town }}, {{ state }} {{ zipcode }}</p>
+     <p><strong>Hauler:</strong> {{ selectedHaulerName }}</p>
+    <p>
+     <strong>Garbage:</strong> {{ garbageDay1 }} 
+     @if (garbageDay2 !== '') {
+      and {{ garbageDay2 }}
+     }
+    </p>
+    <p>
+     <strong>Recycling:</strong> {{ recyclingDay }},
+     @if (recyclingFrequency === 'weekly') {
+       every week
+     } @else {
+       every other week
+     }
+    </p>
+    <p>
+     <strong>Email Alerts:</strong>
+     @if (emailAlerts) {
+       On
+     } @else {
+       Off
+     }
+    </p>
+   </div>
+   <div class="finish">
+    <button class="buttoncontinue" (click)="goToDashboard()">Go to Dashboard</button>
+   </div>
+  } @else if (errorMessage()) {
+   <h1>Almost There</h1>
+   <p class="error">{{ errorMessage() }}</p>
+   <div class="stepbuttons">
+    <button class="buttonback" (click)="goBack()">Back</button>
+   </div>
+  } @else {
+   <h1>Finishing Up...</h1>
+   <p class="checking">Confirming your information...</p>
+  }
+ }
+ </div>
+</section>

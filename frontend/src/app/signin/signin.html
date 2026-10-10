@@ -1,1 +1,48 @@
-<p>signin works!</p>
+<section class="onboarding">
+ <div class="card">
+  <div class="cardtop">
+   <div>
+    <h1>Sign In</h1>
+    <p class="subtitle">Welcome back! Sign in to your ProxiBin account.</p>
+   </div>
+  <a routerLink="/" class="cardlogo"><img src="proxibin-logo.svg" alt="ProxiBin home"></a>
+ </div>
+ <div class="field">
+  <label for="email">Email</label>
+  <input id="email" type="email" [(ngModel)]="email">
+  @if (emailError) {
+   <p class="fielderror">{{ emailError }}</p>
+  }
+ </div>
+ <div class="field">
+  <label for="password">Password</label>
+  <input id="password" type="password" [(ngModel)]="password" (keyup.enter)="signIn()">
+  @if (passwordError) {
+   <p class="fielderror">{{ passwordError }}</p>
+  }
+ </div>
+ @if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+ }
+ <p class="divider">or contiune with:</p>
+ <button class="buttonprovider" (click)="signInWithGoogle()">
+  <img src="google-logo.svg" alt="">
+  Google
+ </button>
+ <button class="buttonprovider" (click)="signInWithMicrosoft()">
+  <img src="ms-logo.svg" alt="">
+  Microsoft
+ </button>
+ <div class="stepbuttons">
+  <a routerLink="/" class="buttonback">Back</a>
+  <button class="buttoncontinue" (click)="signIn()" [disabled]="signingIn()">
+   @if (signingIn()) {
+    Signing in...
+   } @else { 
+    Sign In
+   }
+  </button>
+ </div>
+  <p class="switch">Don't have an account? <a routerLink="/signup">Create Account</a></p>
+ </div>
+</section>

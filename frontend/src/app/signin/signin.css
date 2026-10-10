@@ -1,0 +1,139 @@
+.onboarding{
+ min-height: 100vh;
+ padding: 50px 20px;
+ background-color: #07A0C3;
+ box-sizing: border-box;
+}
+.card{
+ max-width: 650px;
+ margin: 0 auto;
+ padding: 40px;
+ background-color: white;
+ border-top: 8px solid #086788;
+ border-radius: 12px;
+}
+.cardtop{
+ display: flex;
+ align-items: flex-start;
+ margin-bottom: 10px;
+}
+.cardlogo{
+ margin-left: auto;
+}
+.cardlogo img{
+ height: 40px;
+}
+.card h1{
+ margin: 10px 0 6px 0;
+ font-size: 32px;
+ color: #086788;
+}
+.subtitle{
+ margin: 0 0 24px 0;
+ color: #120309;
+}
+.field{
+ margin-bottom: 18px;
+}
+.field label{
+ display: block; 
+ margin-bottom: 6px;
+ font-weight: bold;
+ color: #120309;
+}
+.field input{
+ width: 100%;
+ padding: 10px;
+ font-size: 16px;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ box-sizing: border-box;
+}
+.fielderror{
+ margin: 6px 0 0 0;
+ font-size: 14px;
+ font-weight: bold;
+ color: #B00020;
+}
+.error{
+ margin-top: 16px;
+ font-weight: bold;
+ color: #B00020;
+}
+.divider{
+ margin: 20px 0;
+ text-align: center;
+ color: #120309;
+}
+.buttonprovider{
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 10px;
+ width: 70%;
+ margin: 0 auto 12px auto;
+ padding: 12px; 
+ font-family: inherit;
+ font-size: 16px;
+ font-weight: bold;
+ color: #120309;
+ background-color: white;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ cursor: pointer;
+}
+.buttonprovider:hover{
+ background-color: #E6F5F9;
+}
+.buttonprovider img{
+ display: block;
+ width: 20px;
+ height: 20px;
+}
+.stepbuttons{
+ display: flex;
+ justify-content: space-between;
+ margin-top: 30px;
+}
+.buttonback{
+ padding: 12px 24px;
+ font-family: inherit; 
+ font-size: 16px;
+ font-weight: bold;
+ color: #086788;
+ background-color: white;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ text-decoration: none;
+ cursor: pointer;
+}
+.buttonback:hover{
+ background-color: #E6F5F9;
+}
+.buttoncontinue{
+ padding: 12px 24px;
+ font-family: inherit;
+ font-size: 16px;
+ font-weight: bold;
+ color: white;
+ background-color: #086788;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+}
+.buttoncontinue:hover{
+ background-color: #120309;
+}
+.buttoncontinue:disabled{
+ opacity: 0.5;
+ cursor: not-allowed;
+}
+.switch{
+ margin-top: 24px;
+ text-align: center;
+ color: #120309;
+}
+.switch a{
+ color: #086788;
+ font-weight: bold;
+}

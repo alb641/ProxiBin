@@ -6,6 +6,9 @@ import { Contact } from './contact/contact';
 import { Signin } from './signin/signin';
 import { Signup } from './signup/signup';
 import { Privacy } from './privacy/privacy';
+import { Residentdashboard } from './residentdashboard/residentdashboard';
+import { Haulerdashboard } from './haulerdashboard/haulerdashboard';
+import { residentGuard } from './residentguard';
 
 export const routes: Routes = [
  { path: '', component: Home },
@@ -15,4 +18,6 @@ export const routes: Routes = [
  { path: 'signin', component: Signin },
  { path: 'signup', component: Signup },
  { path: 'privacy', component: Privacy }, 
+ { path: 'residentdashboard', component: Residentdashboard, canActivate: [residentGuard] },
+ { path: 'haulerdashboard', component: Haulerdashboard },
 ];

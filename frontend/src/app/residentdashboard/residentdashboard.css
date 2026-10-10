@@ -1,0 +1,38 @@
+.residentnav{
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: 20px 40px;
+ background-color: white;
+ border-bottom: 4px solid #07A0C3;
+}
+.residentnav img{
+ height: 50px;
+}
+.buttonsignout{
+ padding: 10px 22px;
+ font-family: inherit;
+ font-size: 16px;
+ font-weight: bold;
+ color: #086788;
+ background-color: white;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ cursor: pointer;
+}
+.buttonsignout:hover{
+ background-color: #086788;
+ color: white;
+}
+.dashboard{
+ padding: 60px 40px;
+ text-align: center;
+}
+.dashboard h1{
+ font-size: 40px;
+ color: #086788;
+}
+.dashboard p{
+ font-size: 18px;
+ color: #120309;
+}
