@@ -1,0 +1,105 @@
+header{
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: 20px 40px;
+ background-color: white;
+ border-bottom: 4px solid #07A0C3;
+ position: sticky;
+ top: 0;
+ z-index: 10;
+}
+header a{
+ text-decoration: none;
+}
+header img{
+ height: 50px;
+}
+nav{
+ display: flex;
+ gap: 24px;
+}
+nav a{
+ font-size: 18px;
+ color: #120309;
+}
+nav a:hover{
+ color: #086788;
+}
+.policybanner{
+ padding: 60px 40px;
+ background-color: #086788;
+ color: white;
+ text-align: center;
+}
+.policybanner h1{
+ margin: 0 0 10px 0;
+ font-size: 42px;
+}
+.policybanner p{
+ margin: 0;
+ font-size: 16px;
+}
+.policy{
+ max-width: 800px;
+ margin: 0 auto;
+ padding: 50px 40px;
+ color: #120309;
+}
+.capstonenote{
+ padding: 16px 20px;
+ background-color: #E6F5F9;
+ border-left: 6px solid #07A0C3;
+ border-radius: 8px;
+}
+.capstone p{
+ margin: 0;
+}
+.policy h2{
+ margin: 50px 0 10px 0;
+ padding-bottom: 8px;
+ font-size: 30px;
+ color: #086788;
+ border-bottom: 3px solid #B6C949;
+}
+.policy h3{
+ margin: 28px 0 8px 0;
+ font-size: 20px;
+ color: #120309;
+}
+.policy p,
+.policy li{
+ font-size: 17px;
+ line-height: 1.6;
+}
+.policy ul{
+ padding-left: 22px;
+}
+.policy li{
+ margin-bottom: 6px;
+}
+.policy a{
+ color: #086788;
+ font-weight: bold;
+}
+footer{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: space-between;
+ align-items: center;
+ gap: 16px;
+ padding: 24px 40px;
+ background-color: #120309;
+ color: white;
+}
+footer p{
+ margin: 0;
+}
+footer a{
+ color: white;
+ font-size: 16px;
+ text-decoration: none;
+}
+footer a:hover{
+ color: #07A0C3;
+}
