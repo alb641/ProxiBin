@@ -5,12 +5,54 @@ require("dotenv").config();
 // Import Supabase client
 const { createClient } = require("@supabase/supabase-js");
 
+// Number of remaining stops before a pickup is approaching
+const APPROACHING_THRESHOLD = 5;
+
 // Connect to Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
 
+// Update approaching statuses within a single collection run
+async function updateApproachingStatuses(truckId, runId) {
+
+  // Load unfinished pickups for this truck and run
+  const { data: pickups, error } = await supabase
+    .from("collection_progress")
+    .select("id, route_order, status")
+    .eq("truck_id", truckId)
+    .eq("collection_run_id", runId)
+    .neq("status", "completed")
+    .order("route_order", { ascending: true });
+
+  if (error) {
+    console.error("Error checking approaching pickups:", error.message);
+    return false;
+  }
+
+  // Update pickups that have five or fewer unfinished stops before them
+  for (let i = 0; i < pickups.length; i++) {
+
+    if (i <= APPROACHING_THRESHOLD && pickups[i].status === "upcoming") {
+
+      const { error: updateError } = await supabase
+        .from("collection_progress")
+        .update({ status: "approaching" })
+        .eq("id", pickups[i].id)
+        .eq("truck_id", truckId)
+        .eq("collection_run_id", runId)
+        .eq("status", "upcoming");
+
+      if (updateError) {
+        console.error("Error updating approaching status:", updateError.message);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
 
 // Main function responsible for truck movement
 async function startSimulator() {
@@ -34,7 +76,7 @@ async function startSimulator() {
   console.log("Truck simulator started!");
   console.log("Active trucks:", trucks.length);
 
-  // Start movement for each truck
+  //Start movement for each truck
   for (const truck of trucks) {
     simulateTruck(truck);
   }
@@ -49,13 +91,13 @@ async function simulateTruck(truck) {
  // Retrieve scheduled pickups for this truck
 const { data: pickups, error } = await supabase
   .from("collection_progress")
-  .select("id, resident_id, route_order, collection_type, schedule_date, status")
+  .select("id, resident_id, route_order, collection_type, schedule_date, collection_run_id, status")
   .eq("truck_id", truck.id)
   .eq("schedule_date", process.env.SIM_DATE ||new Date().toLocaleDateString("en-CA", {
   timeZone: "America/New_York"
 }))
   .neq("status", "completed")
-  .order("collection_type", { ascending: true })
+  .order("collection_run_id", { ascending: true })
   .order("route_order", { ascending: true });
 
   // Stop if sections cannot be retrieved
@@ -84,6 +126,24 @@ console.log("Pickups loaded:", pickups.length);
 
 // Get the current scheduled pickup
 const pickup = pickups[index];
+
+// Check if the truck is starting a different collection run
+if (
+  index > 0 &&
+  pickup.collection_run_id !== pickups[index - 1].collection_run_id
+) {
+  const nextRunUpdated = await updateApproachingStatuses(
+    truck.id,
+    pickup.collection_run_id
+  );
+
+  if (!nextRunUpdated) {
+    console.error("Could not update the next collection run.");
+    return false;
+  }
+
+  console.log("Starting next collection run:", pickup.collection_run_id);
+}
 
 // Check whether this truck is still active
 const { data: activeTruck, error: activeError } = await supabase
@@ -175,6 +235,62 @@ if (completionError) {
   return false;
 }
 
+// Mark the collection run as in progress
+const { error: runError } = await supabase
+  .from("collection_runs")
+  .update({ status: "in_progress" })
+  .eq("id", pickup.collection_run_id)
+  .eq("truck_id", truck.id)
+  .eq("status", "scheduled");
+
+if (runError) {
+  console.error("Error updating collection run:", runError.message);
+  return false;
+}
+
+// Update approaching statuses after completing this pickup
+const approachingUpdated = await updateApproachingStatuses(
+  truck.id,
+  pickup.collection_run_id
+);
+
+if (!approachingUpdated) {
+  console.error("Failed to update approaching statuses.");
+  return false;
+}
+
+// Check whether any unfinished pickups remain in this collection run
+const { count: remainingPickups, error: countError } = await supabase
+  .from("collection_progress")
+  .select("id", { count: "exact", head: true })
+  .eq("truck_id", truck.id)
+  .eq("collection_run_id", pickup.collection_run_id)
+  .neq("status", "completed");
+
+if (countError) {
+  console.error("Error checking remaining pickups:", countError.message);
+  return false;
+}
+
+// Mark the collection run as completed when all pickups are finished
+if (remainingPickups === 0) {
+  const { error: completedRunError } = await supabase
+    .from("collection_runs")
+    .update({ status: "completed" })
+    .eq("id", pickup.collection_run_id)
+    .eq("truck_id", truck.id)
+    .eq("status", "in_progress");
+
+  if (completedRunError) {
+    console.error("Error completing collection run:", completedRunError.message);
+    return false;
+  }
+
+  console.log("Collection run completed:", pickup.collection_run_id);
+}
+
+
+
     // Display the successful movement
     console.log("----------------------------");
     console.log("Truck:", truck.truck_name);
@@ -192,6 +308,21 @@ if (completionError) {
       console.log("All scheduled pickups have been visited for:", truck.truck_name);
     }
   }
+
+  // Update approaching statuses for the first collection run only
+const firstRunId = pickups[0].collection_run_id;
+
+if (!firstRunId) {
+  console.error("Pickup is missing a collection run ID.");
+  return;
+}
+
+const updated = await updateApproachingStatuses(truck.id, firstRunId);
+
+if (!updated) {
+  console.error("Could not update approaching statuses.");
+  return;
+}
 
 // Move immediately when the simulator starts
 const firstMove = await moveTruck();
@@ -219,13 +350,13 @@ if (moved === false) {
 
 // Schedule another movement only if pickups remain
 if (index < pickups.length) {
-  setTimeout(repeatMovement, 4000);
+  setTimeout(repeatMovement, 5000);
 }
 }
 
 // Start repeating only if pickups remain
 if (index < pickups.length) {
-  setTimeout(repeatMovement, 4000);
+  setTimeout(repeatMovement, 5000);
 }
 
 }
