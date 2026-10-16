@@ -192,11 +192,12 @@ const position = {
       .update({
         lat: position.lat,
         lng: position.lng,
-        current_section_id: null,
+        current_route_order: pickup.route_order,
+        current_collection_type: pickup.collection_type,
         updated_at: new Date().toISOString()
       })
       .eq("truck_id", truck.id)
-      .select("id, lat, lng, updated_at")
+      .select("id, lat, lng, current_route_order, current_collection_type, updated_at")
       .single();
 
     // Check whether the update succeeded
