@@ -1,1 +1,116 @@
-<p>contact works!</p>
+<header>
+ <a routerLink="/"><img src="proxibin-logo.svg" alt="ProxiBin home"></a>
+ <nav>
+  <a routerLink="/about">About Us</a>
+  <a routerLink="/purpose">Purpose</a>
+  <a routerLink="/contact">Contact/Inquiry</a>
+ </nav>
+</header>
+<section class="contactbanner">
+ <h1>Contact Us</h1>
+ <p>Have a question or idea? Send us a message and our team will get back to you.</p>
+</section>
+<section class="contactsection">
+ <div class="contactcard">
+  <h2>Send an Inquiry</h2>
+  <div class="field">
+   <label for="name">Name</label>
+   <input id="name" type="text" [(ngModel)]="name">
+   @if (nameError) {
+    <p class="fielderror">{{ nameError }}</p>
+   }
+  </div>
+  <div class="field">
+   <label for="email">Email</label>
+   <input id="email" type="email" [(ngModel)]="email">
+   @if (emailError) {
+    <p class="fielderror">{{ emailError }}</p>
+   }
+  </div>
+  <div class="field">
+   <label for="inquiryType">Inquiry Type</label>
+   <select id="inquiryType" [(ngModel)]="inquiryType">
+    <option value="">Choose one</option>
+    @for (type of inquiryTypes; track type) {
+     <option [value]="type">{{ type }}</option>
+    }
+   </select>
+   @if (inquiryTypeError) {
+    <p class="fielderror">{{ inquiryTypeError }}</p>
+   }
+   </div>
+   <div class="field">
+    <label for="message">Message</label>
+    <textarea id="message" rows="6" [(ngModel)]="message"></textarea>
+    @if (messageError) {
+     <p class="fielderror">{{ messageError }}</p>
+    }
+   </div>
+   @if (sentMessage()) {
+    <p class="sent">{{ sentMessage() }}</p>
+   }
+   @if (errorMessage()) {
+    <p class="fielderror">{{ errorMessage() }}</p>
+   }
+   <div class="sendrow">
+    <button class="buttonsend" (click)="sendInquiry()" [disabled]="sending()">
+     @if (sending()) {
+      Sending...
+     } @else {
+      Send Message
+     }
+    </button>
+   </div>
+  </div>
+ </section>
+<section class="faq">
+ <h2>Frequently Asked Question</h2>
+ <div class="faqlist">
+  <details>
+   <summary>What is ProxiBin?</summary>
+   <p>ProxiBin helps residents stay informed about thier waste collection through pickup updates, alerts and easy issue reporting - all in one place.</p>
+  </details>
+  <details>
+   <summary>Is ProxiBin my waste hauler?</summary>
+   <p>No. ProxiBin does not replace your waste hauler. It connects residents with information about their existing waste collection service and provides an easier way to stay informed and report collection issuses.</p>
+  </details>
+  <details>
+   <summary>Is ProxiBin available in my area?</summary>
+   <p>ProxiBin is currently being piloted in Watchung, New Jersey. We plan to expand to additional communities in the future.</p>
+  </details>
+  <details>
+   <summary>Do I choose my waste hauler through ProxiBin?</summary>
+   <p>No. ProxiBin is designed for residents who already have a waste hauler. During setup, you select the hauler that currently services your residence.</p>
+  </details>
+  <details>
+   <summary>Can I change my pickup schedule?</summary>
+   <p>Your pickup schedule is based on the service associated with your residence. During onboarding, you can confirm or provide your current garbage and recycling schedule.
+  </details>
+  <details>
+   <summary>What can I reprot through ProxiBin?</summary>
+   <p>Residents can report collection issues such as missed or late pickups, damaged bins, incomplete collection and other garbage or recycling service concerns.</p>
+  </details>
+  <details>
+   <summary>Does ProxiBin charge residents?</summary>
+   <p>The core ProxiBin resident experience is intended to be free for residents.</p>
+  </details>
+  <details>
+   <summary>Is ProxiBin connected directly to my waste hauler?</summary>
+   <p>The current ProxiBin pilot uses a prototype environment and simulated collection information. Future versions may support direct integrations with waste haulers.</p>
+  </details>
+  <details>
+   <summary>I have a problem with my pickup. Who should I contact?</summary>
+   <p>You can use ProxiBin to document and report your collection issue. For urgent or immediate service concerns, you may also contact your existing waste hauler directly.</p>
+  </details>
+  <details>
+   <summary>How can I contact ProxiBin?</summary>
+   <p>Use the inquiry form on this page to contact us. Select the inquiry type that best matches your question, including Resident Support, Waste Hauler Partnership, Municipality/Community Inquiry, Product Feedback, Report a Problem or General Inquiry.</p>
+  </details>
+ </div>
+</section>
+<footer>
+ <a routerLink="/privacy">Privacy Policy</a>
+ <p>&copy; 2026 ProxiBin. All rights reerved.</p>
+ <a routerLink="/contact">Contact/Inquiry</a>
+</footer>
+
