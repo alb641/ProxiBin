@@ -1,4 +1,5 @@
-// Load environment variables from .env
+
+ // Load environment variables from .env
 require("dotenv").config();
 
 // Import Supabase client
@@ -10,61 +11,70 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-// Get the truck ID from .env
-const truckId = process.env.TRUCK_ID;
-
-// Simulated coordinates around Watchung, NJ
-// These are test locations, not official truck routes
-const coordinates = [
-  { lat: 40.6420, lng: -74.4410 },
-  { lat: 40.6430, lng: -74.4390 },
-  { lat: 40.6450, lng: -74.4370 },
-  { lat: 40.6470, lng: -74.4350 },
-  { lat: 40.6490, lng: -74.4330 }
-];
 
 // Main function responsible for truck movement
 async function startSimulator() {
 
-  // Retrieve collection sections from Supabase
-  // Sort sections according to their collection order
-  const { data: sections, error } = await supabase
-    .from("sections")
-    .select("id, name, order_index")
-    .order("order_index", { ascending: true });
+  // Retrieve all active trucks from Supabase
+  const { data: trucks, error: truckError } = await supabase
+    .from("trucks")
+    .select("id, hauler_id, truck_name")
+    .eq("is_active", true);
 
-  // Stop if sections cannot be retrieved
-  if (error) {
-    console.error("Error loading sections:", error.message);
+  if (truckError) {
+    console.error("Error loading trucks:", truckError.message);
     return;
   }
 
-  // Stop if no sections exist
-  if (!sections || sections.length === 0) {
-    console.log("No collection sections found.");
-    return;
-  }
-
-  // Verify the truck ID was provided
-  if (!truckId) {
-    console.error("TRUCK_ID is missing from .env");
-    return;
-  }
-
-  // Check that the truck exists before starting
-  const { data: truck, error: truckError } = await supabase
-    .from("truck_positions")
-    .select("id")
-    .eq("id", truckId)
-    .single();
-
-  if (truckError || !truck) {
-    console.error("Truck not found:", truckError?.message);
+  if (!trucks || trucks.length === 0) {
+    console.log("No active trucks found.");
     return;
   }
 
   console.log("Truck simulator started!");
-  console.log("Sections loaded:", sections.length);
+  console.log("Active trucks:", trucks.length);
+
+  // Start movement for each truck
+  for (const truck of trucks) {
+    simulateTruck(truck);
+  }
+}
+
+
+// Function responsible for moving each truck
+async function simulateTruck(truck) {
+
+  // Retrieve collection sections from Supabase
+  // Sort sections according to their collection order
+ // Retrieve scheduled pickups for this truck
+const { data: pickups, error } = await supabase
+  .from("collection_progress")
+  .select("id, resident_id, route_order, collection_type, schedule_date, status")
+  .eq("truck_id", truck.id)
+  .eq("schedule_date", process.env.SIM_DATE ||new Date().toLocaleDateString("en-CA", {
+  timeZone: "America/New_York"
+}))
+  .neq("status", "completed")
+  .order("collection_type", { ascending: true })
+  .order("route_order", { ascending: true });
+
+  // Stop if sections cannot be retrieved
+ // Stop if pickups cannot be retrieved
+if (error) {
+  console.error("Error loading pickups:", error.message);
+  return;
+}
+
+
+
+// Stop if no scheduled pickups exist
+if (!pickups || pickups.length === 0) {
+  console.log("No scheduled pickups found for:", truck.truck_name);
+  return;
+}
+
+console.log("Truck:", truck.truck_name);
+console.log("Pickups loaded:", pickups.length);
 
   // Track which section the truck is visiting
   let index = 0;
@@ -72,11 +82,49 @@ async function startSimulator() {
   // Function that updates the truck's position
   async function moveTruck() {
 
-    // Get the current section
-    const section = sections[index];
+// Get the current scheduled pickup
+const pickup = pickups[index];
 
-    // Get simulated coordinates for this section
-    const position = coordinates[index % coordinates.length];
+// Check whether this truck is still active
+const { data: activeTruck, error: activeError } = await supabase
+  .from("trucks")
+  .select("is_active")
+  .eq("id", truck.id)
+  .single();
+
+// Stop movement if the truck is inactive or cannot be checked
+if (activeError || !activeTruck || activeTruck.is_active !== true) {
+  console.log("Truck is inactive or unavailable:", truck.truck_name);
+  return false;
+}
+
+// Get the resident assigned to this pickup
+const { data: resident, error: residentError } = await supabase
+  .from("residents")
+  .select("first_name, last_name, lat, lng")
+  .eq("id", pickup.resident_id)
+  .single();
+
+// Stop if the resident cannot be retrieved
+if (residentError || !resident) {
+  console.error(
+    "Error loading resident:",
+    residentError?.message || "Resident not found"
+  );
+  return false;
+}
+
+// Stop if the resident has no coordinates
+if (resident.lat == null || resident.lng == null) {
+  console.error("Missing coordinates for resident:", pickup.resident_id);
+  return false;
+}
+
+// Use the resident coordinates from Supabase
+const position = {
+  lat: resident.lat,
+  lng: resident.lng
+};
 
     // Update the existing truck record in Supabase
     const { data, error } = await supabase
@@ -84,42 +132,102 @@ async function startSimulator() {
       .update({
         lat: position.lat,
         lng: position.lng,
-        current_section_id: section.id,
+        current_section_id: null,
         updated_at: new Date().toISOString()
       })
-      .eq("id", truckId)
-      .select("id, lat, lng, current_section_id, updated_at")
+      .eq("truck_id", truck.id)
+      .select("id, lat, lng, updated_at")
       .single();
 
     // Check whether the update succeeded
     if (error) {
-      console.error("Truck update failed:", error.message);
-      return;
+      console.error("Truck update failed:", truck.truck_name, error.message);
+      return false;
     }
+// Check again before completing the pickup
+const { data: truckStatus, error: statusError } = await supabase
+  .from("trucks")
+  .select("is_active")
+  .eq("id", truck.id)
+  .single();
+
+// Do not complete the pickup if the truck was deactivated
+if (statusError || !truckStatus || truckStatus.is_active !== true) {
+  console.log("Truck deactivated before pickup completion:", truck.truck_name);
+  return false;
+}    
+    // Mark the scheduled pickup as completed
+const { error: completionError } = await supabase
+  .from("collection_progress")
+  .update({
+    status: "completed",
+    completed_at: new Date().toISOString()
+  })
+  .eq("id", pickup.id)
+  .eq("truck_id", truck.id)
+  .neq("status", "completed")
+  .select("id")
+  .single();
+
+// Stop if the pickup could not be marked completed
+if (completionError) {
+  console.error("Pickup completion failed:", completionError.message);
+  return false;
+}
 
     // Display the successful movement
     console.log("----------------------------");
-    console.log("Truck moved to:", section.name);
+    console.log("Truck:", truck.truck_name);
+    console.log("Truck moved to:", resident.first_name, resident.last_name);
+    console.log("Collection Type:", pickup.collection_type);
+    console.log("Route order:", pickup.route_order);
     console.log("Latitude:", data.lat);
     console.log("Longitude:", data.lng);
     console.log("Updated at:", data.updated_at);
 
-    // Move to the next section
-    // Return to the first section after the last one
-    index = (index + 1) % sections.length;
+    // Move to the next scheculed pickup
+    index++;
+    //Stop after all scheduled pickups have been visited
+    if (index >= pickups.length){
+      console.log("All scheduled pickups have been visited for:", truck.truck_name);
+    }
   }
 
-  // Move immediately when the simulator starts
-  await moveTruck();
+// Move immediately when the simulator starts
+const firstMove = await moveTruck();
 
-  // Continue moving every 4 seconds
-  // Wait for each update to finish before scheduling the next
-  async function repeatMovement() {
-    await moveTruck();
-    setTimeout(repeatMovement, 4000);
+// Stop if the truck is inactive or movement failed
+if (firstMove === false) {
+  return;
+}
+
+// Continue moving every 4 seconds
+// Wait for each update to finish before scheduling the next
+async function repeatMovement() {
+
+  // Stop when all scheduled pickups have been visited
+  if (index >= pickups.length) {
+    return;
   }
 
+ const moved = await moveTruck();
+
+// Stop repeating if the truck is inactive or movement failed
+if (moved === false) {
+  return;
+}
+
+// Schedule another movement only if pickups remain
+if (index < pickups.length) {
   setTimeout(repeatMovement, 4000);
+}
+}
+
+// Start repeating only if pickups remain
+if (index < pickups.length) {
+  setTimeout(repeatMovement, 4000);
+}
+
 }
 
 // Start the simulator
