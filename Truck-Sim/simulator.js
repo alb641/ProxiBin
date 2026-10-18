@@ -6,13 +6,153 @@ require("dotenv").config();
 const { createClient } = require("@supabase/supabase-js");
 
 // Number of remaining stops before a pickup is approaching
-const APPROACHING_THRESHOLD = 5;
+const APPROACHING_THRESHOLD = 5
+
+// Simulated driving settings
+const TRAVEL_TIME_MS = 10000;
+const POSITION_UPDATE_MS = 2000;
+const STEPS_PER_TRIP = TRAVEL_TIME_MS / POSITION_UPDATE_MS;
 
 // Connect to Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
+
+// Get the driving route between two locations using Mapbox
+async function getDrivingRoute(start, end) {
+  const coordinates =
+    `${start.lng},${start.lat};${end.lng},${end.lat}`;
+
+  const url =
+    `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}` +
+    `?geometries=geojson&overview=full` +
+    `&access_token=${process.env.MAPBOX_TOKEN}`;
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Mapbox request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const route = result.routes?.[0]?.geometry?.coordinates;
+
+    if (!route || route.length < 2) {
+      throw new Error("No valid driving route found.");
+    }
+
+    return route.map(([lng, lat]) => ({ lat, lng }));
+
+  } catch (error) {
+    console.error("Mapbox route error:", error.message);
+    return null;
+  }
+}
+
+// Simulate driving along a road route
+async function driveToStop(truck, start, destination, pickup) {
+  const route = await getDrivingRoute(start, destination);
+
+  if (!route) {
+    console.error("Cannot drive without a valid road route.");
+    return false;
+  }
+
+  // Calculate distances along the road
+  const distances = [0];
+
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1];
+    const b = route[i];
+
+    const dx = (b.lng - a.lng) *
+      Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180);
+    const dy = b.lat - a.lat;
+
+    distances.push(
+      distances[i - 1] + Math.sqrt(dx * dx + dy * dy)
+    );
+  }
+
+  const totalDistance = distances[distances.length - 1];
+
+  if (totalDistance === 0) {
+    console.error("Route has no travel distance.");
+    return false;
+  }
+
+  // Five position updates over approximately 10 seconds
+  for (let step = 1; step <= STEPS_PER_TRIP; step++) {
+    await new Promise(resolve =>
+      setTimeout(resolve, POSITION_UPDATE_MS)
+    );
+
+    // Stop if the truck has been deactivated
+    const { data: activeTruck, error: activeError } = await supabase
+      .from("trucks")
+      .select("is_active")
+      .eq("id", truck.id)
+      .single();
+
+    if (activeError || !activeTruck || !activeTruck.is_active) {
+      console.error("Truck inactive or unavailable:", truck.truck_name);
+      return false;
+    }
+
+    const targetDistance = totalDistance * step / STEPS_PER_TRIP;
+
+    let segment = 1;
+
+    while (
+      segment < distances.length - 1 &&
+      distances[segment] < targetDistance
+    ) {
+      segment++;
+    }
+
+    const segmentDistance =
+      distances[segment] - distances[segment - 1];
+
+    const fraction = segmentDistance === 0
+      ? 0
+      : (targetDistance - distances[segment - 1]) / segmentDistance;
+
+    const a = route[segment - 1];
+    const b = route[segment];
+
+    const lat = a.lat + (b.lat - a.lat) * fraction;
+    const lng = a.lng + (b.lng - a.lng) * fraction;
+
+    const { data, error } = await supabase
+      .from("truck_positions")
+      .update({
+        lat,
+        lng,
+        current_route_order: pickup.route_order,
+        current_collection_type: pickup.collection_type,
+        updated_at: new Date().toISOString()
+      })
+      .eq("truck_id", truck.id)
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      console.error(
+        "Truck position update failed:",
+        error?.message || "No matching truck position"
+      );
+      return false;
+    }
+
+    console.log(
+      `${truck.truck_name}: driving update ${step}/${STEPS_PER_TRIP}`
+    );
+  }
+
+  return true;
+}
 
 // Update approaching statuses within a single collection run
 async function updateApproachingStatuses(truckId, runId) {
@@ -186,25 +326,38 @@ const position = {
   lng: resident.lng
 };
 
-    // Update the existing truck record in Supabase
-    const { data, error } = await supabase
-      .from("truck_positions")
-      .update({
-        lat: position.lat,
-        lng: position.lng,
-        current_route_order: pickup.route_order,
-        current_collection_type: pickup.collection_type,
-        updated_at: new Date().toISOString()
-      })
-      .eq("truck_id", truck.id)
-      .select("id, lat, lng, current_route_order, current_collection_type, updated_at")
-      .single();
+// Get the truck's current location
+const { data: currentPosition, error: positionError } = await supabase
+  .from("truck_positions")
+  .select("lat, lng")
+  .eq("truck_id", truck.id)
+  .single();
 
-    // Check whether the update succeeded
-    if (error) {
-      console.error("Truck update failed:", truck.truck_name, error.message);
-      return false;
-    }
+if (positionError || !currentPosition) {
+  console.error("Could not load truck starting position:", truck.truck_name);
+  return false;
+}
+
+if (currentPosition.lat == null || currentPosition.lng == null) {
+  console.error("Truck has no starting coordinates:", truck.truck_name);
+  return false;
+}
+
+// Drive along the road before completing the pickup
+const arrived = await driveToStop(
+  truck,
+  { lat: currentPosition.lat, lng: currentPosition.lng },
+  position,
+  pickup
+);
+
+
+if (!arrived) {
+  console.error("Truck could not reach pickup:", truck.truck_name);
+  return false;
+}
+
+
 // Check again before completing the pickup
 const { data: truckStatus, error: statusError } = await supabase
   .from("trucks")
@@ -290,17 +443,15 @@ if (remainingPickups === 0) {
   console.log("Collection run completed:", pickup.collection_run_id);
 }
 
-
-
     // Display the successful movement
     console.log("----------------------------");
     console.log("Truck:", truck.truck_name);
     console.log("Truck moved to:", resident.first_name, resident.last_name);
     console.log("Collection Type:", pickup.collection_type);
     console.log("Route order:", pickup.route_order);
-    console.log("Latitude:", data.lat);
-    console.log("Longitude:", data.lng);
-    console.log("Updated at:", data.updated_at);
+    console.log("Latitude:", position.lat);
+    console.log("Longitude:", position.lng);
+    console.log("Arrived at:", new Date().toISOString());
 
     // Move to the next scheculed pickup
     index++;
@@ -351,13 +502,13 @@ if (moved === false) {
 
 // Schedule another movement only if pickups remain
 if (index < pickups.length) {
-  setTimeout(repeatMovement, 5000);
+  setTimeout(repeatMovement, 0);
 }
 }
 
 // Start repeating only if pickups remain
 if (index < pickups.length) {
-  setTimeout(repeatMovement, 5000);
+  setTimeout(repeatMovement, 0);
 }
 
 }
