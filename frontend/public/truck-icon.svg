@@ -1,0 +1,21 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Garbage truck">
+  <!-- white circle background so the truck stands out on the map -->
+  <circle cx="32" cy="32" r="30" fill="#FFFFFF" stroke="#086788" stroke-width="3"/>
+
+  <!-- truck body (garbage container) -->
+  <rect x="11" y="22" width="26" height="18" rx="3" fill="#00A878"/>
+  <rect x="15" y="26" width="18" height="3" rx="1.5" fill="#FFFFFF" opacity="0.6"/>
+
+  <!-- truck cab -->
+  <path d="M37 27 H46 L52 33 V40 H37 Z" fill="#086788"/>
+  <rect x="40" y="29" width="6" height="5" rx="1" fill="#FFFFFF"/>
+
+  <!-- base -->
+  <rect x="11" y="39" width="41" height="3" fill="#120309"/>
+
+  <!-- wheels -->
+  <circle cx="20" cy="44" r="4.5" fill="#120309"/>
+  <circle cx="20" cy="44" r="1.8" fill="#FFFFFF"/>
+  <circle cx="44" cy="44" r="4.5" fill="#120309"/>
+  <circle cx="44" cy="44" r="1.8" fill="#FFFFFF"/>
+</svg>

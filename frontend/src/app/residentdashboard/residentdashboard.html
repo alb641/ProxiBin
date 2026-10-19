@@ -3,6 +3,121 @@
  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
 </header>
 <main class="dashboard">
- <h1>Your Dashboard</h1>
- <p>Your dashboard is coming soon.</p>
+ @if(loading()) {
+  <p class="message">Loading your dashboard...</p>
+ } @else if (errorMessage()) {
+  <div class="errorbox">
+   <p>{{ errorMessage() }}</p>
+  </div>
+ } @else {
+  <section class="welcome">
+   <h1>Welcome back, {{ firstName() }}</h1>
+   <p><strong>Address:</strong> {{ address() }}</p>
+   <p><strong>Hauler:</strong> {{ haulerName() }}</p>
+  </section>
+  <div class="panels">
+   <section class="panel trackerpanel">
+    <div class="panelheader">
+     <h2>Live Collection Tracker</h2>
+     <span class="simlabel">Simulated data</span>
+    </div>
+    <div class="statusbar">
+     @if (todayPickups().length === 0) {
+      <p class="nocollection">No collection is scheduled for today.</p>
+     } @else {
+      @for (pickup of todayPickups(); track pickup.collection_type) {
+       <div class="statusitem">
+        <span class="dot"
+         [class.garbagedot]="pickup.collection_type === 'garbage'"
+         [class.recyclingdot]="pickup.collection_type === 'recycling'"></span>
+        <strong>{{ pickup.collection_type === 'garbage' ? 'Garbage' : 'Recycling' }} today:</strong>
+        <span class="statusbadge"
+         [class.upcoming]="pickup.status === 'upcoming'"
+         [class.approaching]="pickup.status === 'approaching'"
+         [class.completed]="pickup.status === 'completed'">
+         {{ statusLabel(pickup.status) }}
+        </span>
+        @if (stopsAwayText(pickup)) {
+         <span class="stopsaway">{{ stopsAwayText(pickup) }}</span>
+        }
+       </div>
+      }
+     }
+    </div> 
+    <div class="mapbox" id="map" class="map">
+    </div>
+    @if (noTruck()) {
+     <p class="notruck">No truck position is available right now.</p>
+    }
+    <div class="legend">
+     <span class="legenditem">
+      <img src="truck-icon.svg" alt="" class="legendicon"> Your hauler's truck
+     </span>
+     <span class="legenditem">
+       <img src="home-icon.svg" alt="" class="legendicon"> Your home
+     </span>
+     <span class="legenditem">
+       <span class="legendroute"></span> Route progress
+     </span>
+    </div>
+   </section>
+   <section class="panel schedulepanel">
+    <div class="panelheader">
+     <h2>Upcoming Collection Schedule</h2>
+    </div>
+    <div class="nextlist">
+     <p>
+      <span class="dot garbagedot"></span>
+      <strong>Next garbage:</strong> {{ nextGarbage() }}
+     </p>
+     <p>
+      <span class="dot recyclingdot"></span>
+      <strong>Next recycling:</strong>
+      @if (nextRecycling()) {
+       {{ nextRecycling() }}
+      } @else {
+        Every other {{ recyclingDay() }}
+      }
+     </p>
+    </div>
+    <div class="calendarheader">
+     <button class="monthbutton" (click)="previousMonth()" [disabled]="monthOffset === 0" aria-label="Previous Month">&lsaquo;</button>
+     <h3>{{ monthTitle() }}</h3>
+     <button class="monthbutton" (click)="nextMonth()" aria-label="Next month">&rsaquo;</button>
+    </div>
+    <div class="calendar">
+     <div class="weekday">Sun</div>
+     <div class="weekday">Mon</div>
+     <div class="weekday">Tue</div>
+     <div class="weekday">Wed</div>
+     <div class="weekday">Thu</div>
+     <div class="weekday">Fri</div>
+     <div class="weekday">Sat</div>
+     @for (day of calendarDays(); track $index) {
+      <div
+       class="day"
+       [class.garbageday]="day.garbage && !day.recycling"
+       [class.recyclingday]="day.recycling && !day.garbage"
+       [class.bothday]="day.garbage && day.recycling"
+       [class.today]="day.today"
+       [class.past]="day.past">
+       <span class="daynumber">{{ day.number }}</span>
+       @if (day.done) {
+        <span class="checkmark">✓</span>
+       }
+      </div>
+     }
+    </div>
+    <div class="calendarkey">
+     <span><span class="dot garbagedot"></span> Garbage</span>
+     <span><span class="dot recyclingdot"></span> Recycling</span>
+     <span><span class="dot todaydot"></span> Today</span>
+     <span><span class="checkmark keycheck">✓</span> Completed</span>
+    </div>
+    @if (recyclingFrequency() === 'biweekly') {
+     <p class="biweeklynote">Biweekly recycling days will appear on the calendar soon.</p>
+    }
+   </section>
+  </div>
+ }
 </main>

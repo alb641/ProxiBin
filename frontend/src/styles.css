@@ -1,5 +1,14 @@
 /* You can add global styles to this file, and also import other style files */
+@import 'mapbox-gl/dist/mapbox-gl.css';
 body{
  margin: 0;
  font-family: Arial, sans-serif;
+}
+.truckmarker{
+ width: 40px;
+ height: 40px;
+}
+.homemarker{
+ width: 36px;
+ height: 36px;
 }

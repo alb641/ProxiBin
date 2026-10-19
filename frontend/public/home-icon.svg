@@ -1,0 +1,13 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Your home">
+  <!-- green circle with a dark outline, matching the "Your home" dot in the map legend -->
+  <circle cx="32" cy="32" r="30" fill="#B6C949" stroke="#120309" stroke-width="3"/>
+
+  <!-- roof -->
+  <path d="M14 32 L32 16 L50 32" fill="none" stroke="#120309" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- house body -->
+  <path d="M19 30 V47 H45 V30" fill="#FFFFFF" stroke="#120309" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- door -->
+  <rect x="28" y="36" width="8" height="11" rx="1" fill="#086788"/>
+</svg>
