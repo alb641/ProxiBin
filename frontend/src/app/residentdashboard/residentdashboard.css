@@ -326,6 +326,160 @@
  display: inline-block;
  border: 1px solid #086788;
 }
+.ticketpanels{
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 24px;
+ margin-top: 24px;
+}
+.field{
+ margin-bottom: 18px;
+}
+.field label{
+ display: block;
+ margin-bottom: 6px;
+ font-weight: bold;
+ color: #120309;
+}
+.field input, 
+.field select,
+.field textarea{
+ width: 100%;
+ padding: 10px;
+ font-family: inherit;
+ font-size: 16px;
+ color: #120309;
+ background-color: white;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ box-sizing: border-box;
+}
+.field textarea{
+ resize: vertical;
+}
+.fielderror{
+ margin: 6px 0 0 0;
+ font-size: 14px;
+ font-weight: bold;
+ color: #B00020;
+}
+.charcount{
+ margin: 4px 0 0 0;
+ font-size: 13px;
+ text-align: right;
+ color: #096B72;
+}
+.charlimit{
+ font-weight: bold;
+ color: #B00020;
+}
+.bulknote{
+ margin: 8px 0 0 0;
+ padding: 10px 12px;
+ font-size: 14px;
+ color: #120309;
+ background-color: #E6F5F9;
+ border-left: 6px solid #B6C949;
+ border-radius: 8px;
+}
+.ticketerror{
+ font-weight: bold;
+ color: #B00020;
+}
+.ticketsent{
+ padding: 14px;
+ font-weight: bold;
+ color: #120309;
+ background-color: #B6C949;
+ border-radius: 8px;
+}
+.ticketbuttonrow{
+ text-align: right;
+}
+.buttonsubmit{
+ padding: 12px 24px;
+ font-family: inherit;
+ font-size: 16px;
+ font-weight: bold;
+ color: white;
+ background-color: #086788;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+}
+.buttonsubmit:hover{
+ background-color: #120309;
+}
+.buttonsubmit:disabled{
+ opacity: 0.5;
+ cursor: not-allowed;
+}
+.requestmessage{
+ margin: 0;
+ font-size: 16px;
+ color: #120309;
+}
+.requestlist{
+ display: flex;
+ flex-direction: column;
+ gap: 14px;
+ max-height: 600px;
+ overflow-y: auto;
+}
+.requestcard{
+ padding: 16px;
+ border: 2px solid #E6F5F9;
+ border-left: 6px solid #086788;
+}
+.requestcard p{
+ margin: 4px 0;
+ font-size: 15px;
+ color: #120309;
+}
+.requesttop{
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: space-between;
+ align-items: center;
+ gap: 8px;
+ font-size: 17px;
+ color: #086788;
+}
+.requeststatus{
+ padding: 3px 12px;
+ font-size: 13px;
+ font-weight: bold;
+ color: white;
+ background-color: #07A0C3;
+ border-radius: 8px;
+}
+.statusprogress{
+ color: #120309;
+ background-color: #B6C949;
+}
+.statusresolved{
+ color: white;
+ background-color: #086788;
+}
+.requestcard .requestdate{
+ font-size: 13px;
+ color: #096B72
+}
+.requestcard .requestdescription{
+ margin-top: 8px;
+ white-space: pre-wrap;
+}
+.requestreply{
+ margin-top: 10px;
+ padding: 10px 12px;
+ background-color: #E6F5F9;
+ border-left: 6px solid #B6C949;
+ border-radius: 8px;
+ color: #120309;
+}
+.requestreply p{
+ margin: 4px 0 0 0;
+}
 @media (max-width: 800px){
  .residentnav{
   padding: 16px 20px;
@@ -336,11 +490,8 @@
  .panels{
   grid-template-columns: 1fr;
  }
- .mapbox{
-  height: 30px;
- }
- .mapbox{
-  height: 300px;
+ .ticketpanels{
+  grid-template-columns: 1fr;
  }
  .map{
   height: 300px;

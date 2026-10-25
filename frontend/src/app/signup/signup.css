@@ -50,7 +50,7 @@
  margin-bottom: 18px;
 }
 .field label,
-.field legned{
+.field legend{
  display: block;
  margin-bottom: 6px;
  font-weight: bold;
@@ -173,10 +173,10 @@ fieldset{
  border-radius: 8px;
  cursor: pointer;
 }
-.buttoncontiune:hover{
+.buttoncontinue:hover{
  background-color: #120309;
 }
-.buttoncontiune:disabled{
+.buttoncontinue:disabled{
  opacity: 0.5;
  cursor: not-allowed;
 }

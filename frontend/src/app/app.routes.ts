@@ -7,7 +7,7 @@ import { Signin } from './signin/signin';
 import { Signup } from './signup/signup';
 import { Privacy } from './privacy/privacy';
 import { Residentdashboard } from './residentdashboard/residentdashboard';
-import { Haulerdashboard } from './haulerdashboard/haulerdashboard';
+import { Proxibinadmin } from './proxibinadmin/proxibinadmin';
 import { residentGuard } from './residentguard';
 
 export const routes: Routes = [
@@ -19,5 +19,5 @@ export const routes: Routes = [
  { path: 'signup', component: Signup },
  { path: 'privacy', component: Privacy }, 
  { path: 'residentdashboard', component: Residentdashboard, canActivate: [residentGuard] },
- { path: 'haulerdashboard', component: Haulerdashboard },
+ { path: 'proxibinadmin', component: Proxibinadmin, canActivate: [residentGuard] },
 ];

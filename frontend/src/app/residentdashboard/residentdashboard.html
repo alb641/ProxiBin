@@ -44,7 +44,7 @@
       }
      }
     </div> 
-    <div class="mapbox" id="map" class="map">
+    <div id="map" class="map">
     </div>
     @if (noTruck()) {
      <p class="notruck">No truck position is available right now.</p>
@@ -69,6 +69,18 @@
      <p>
       <span class="dot garbagedot"></span>
       <strong>Next garbage:</strong> {{ nextGarbage() }}
+      @if (pickupStatus('garbage')) {
+       <span class="statusbadge"
+        [class.upcoming]="pickupStatus('garbage') === 'upcoming'"
+        [class.approaching]="pickupStatus('garbage') === 'approaching'"
+        [class.completed]="pickupStatus('garbage') === 'completed'">
+        @if (pickupStatus('garbage') === 'completed') {
+         Today: Completed
+        } @else {
+         {{ statusLabel(pickupStatus('garbage')) }}
+        }
+       </span>
+      }
      </p>
      <p>
       <span class="dot recyclingdot"></span>
@@ -77,6 +89,18 @@
        {{ nextRecycling() }}
       } @else {
         Every other {{ recyclingDay() }}
+      }
+      @if (pickupStatus('recycling')) {
+       <span class="statusbadge"
+        [class.upcoming]="pickupStatus('recycling') === 'upcoming'"
+        [class.approaching]="pickupStatus('recycling') === 'approaching'"
+        [class.completed]="pickupStatus('recycling') === 'completed'">
+        @if (pickupStatus('recycling') === 'completed') {
+         Today: Completed
+        } @else {
+         {{ statusLabel(pickupStatus('recycling')) }}
+        }
+       </span>
       }
      </p>
     </div>
@@ -118,6 +142,147 @@
      <p class="biweeklynote">Biweekly recycling days will appear on the calendar soon.</p>
     }
    </section>
+  </div>
+  <div class="ticketpanels">
+   <section class="panel ticketpanel">
+   <div class="panelheader">
+    <h2>Report a Collection Issue</h2>
+   </div>
+   <div class="field">
+    <label for="ticketType">Request Type</label>
+    <select id="ticketType" [(ngModel)]="ticketType" (change)="clearTicketFields()">
+     <option value="">Choose one</option>
+     @for (type of ticketTypes; track type.value) {
+      <option [value]="type.value">{{ type.label }}</option>
+     }
+    </select>
+    @if (ticketTypeError) {
+     <p class="fielderror">{{ ticketTypeError }}</p>
+    } 
+    </div>
+    @if (ticketType === 'missed_collection' || ticketType === 'no_updates') {
+     <div class="field">
+      <label for="ticketCollectionType">Service Type</label>
+      <select id="ticketCollectionType" [(ngModel)]="ticketCollectionType">
+       <option value="">Choose one</option>
+       <option value="garbage">Garbage</option>
+       <option value="recycling">Recycling</option>
+      </select>
+      @if (ticketCollectionTypeError) {
+       <p class="fielderror">{{ ticketCollectionTypeError }}</p>
+      }
+     </div>
+     }
+     @if (ticketType === 'missed_collection') {
+      <div class="field">
+       <label for="ticketMissedDate">Missed Collection Date</label>
+       <input id="ticketMissedDate" type="date" [(ngModel)]="ticketMissedDate">
+       @if (ticketMissedDateError) {
+        <p class="fielderror">{{ ticketMissedDateError }}</p>
+       }
+      </div>
+     }
+     @if (ticketType === 'damaged_bin' || ticketType === 'new_bin') {
+      <div class="field">
+       <label for="ticketBinType">Bin Type</label>
+       <select id="ticketBinType" [(ngModel)]="ticketBinType">
+        <option value="">Choose one</option>
+        <option value="garbage">Garbage</option>
+        <option value="recycling">Recycling</option>
+       </select>
+       @if (ticketBinTypeError) {
+        <p class="fielderror">{{ ticketBinTypeError }}</p>
+       }
+      </div>
+     }
+     @if (ticketType === 'bulk_pickup') {
+      <div class="field">
+       <label for="ticketPickupDate">Requested Pickup Date</label>
+       <input id="ticketPickupDate" type="date" [(ngModel)]="ticketPickupDate">
+       @if (ticketPickupDateError) {
+        <p class="fielderror">{{ ticketPickupDateError }}</p>
+       }
+        <p class="bulknote">Your requested date is subject to confirmation by your hauler.</p>
+       </div>
+       }
+       @if (ticketType !== '') {
+        <div class="field">
+         <label for="ticketDedscription">
+         @if (ticketType === 'bulk_pickup') {
+          Items to Pick Up
+         } @else {
+          Description
+         }
+         </label> 
+         <textarea id="ticketDescription" rows="4" maxlength="250" [(ngModel)]="ticketDescription"></textarea>
+         <p class="charcount" [class.charlimit]="ticketDescription.length >= 250">{{ ticketDescription.length }} / 250</p>
+         @if (ticketDescriptionError) {
+          <p class="fielderror">{{ ticketDescriptionError }}</p>
+         }
+        </div>
+       }
+       @if (ticketError()) {
+        <p class="ticketerror">{{ ticketError() }}</p>
+       }
+       @if (ticketSent()) {
+        <p class="ticketsent">{{ ticketSent() }}</p>
+       } 
+       <div class="ticketbuttonrow">
+        <button class="buttonsubmit" (click)="submitTicket()" [disabled]="ticketSending()">
+        @if (ticketSending()) {
+         Submitting...
+        } @else {
+         Submit Request
+        }
+        </button>
+       </div>
+      </section>
+      <section class="panel requestspanel">
+       <div class="panelheader">
+        <h2>My Requests</h2>
+       </div>
+       @if (ticketsLoading()) {
+        <p class="requestmessage">Loading your requests...</p>
+       } @else if (ticketsError()) {
+        <p class="ticketerror">{{ ticketsError() }}</p>
+       } @else if (tickets().length === 0) {
+        <p class="requestmessage">You have not sent any requests yet.</p>
+       } @else {
+        <div class="requestlist">
+        @for (ticket of tickets(); track ticket.id) {
+         <div class="requestcard"> 
+         <div class="requesttop">
+          <strong>{{ ticketTypeLabel(ticket.ticket_type) }}</strong>
+          <span class="requeststatus"
+           [class.statusprogress]="ticket.status === 'in_progress'"
+           [class.statusresolved]="ticket.statu  === 'resolved' || ticket.status === 'closed'">
+           {{ ticketStatusLabel(ticket.status) }}
+          </span>
+         </div>
+         <p class="requestdate">Ref {{ ticketReference(ticket.id) }} &middot; Sent {{ formatDate(ticket.created_at) }}</p>
+         @if (ticket.collection_type) {
+          <p><strong>Service:</strong> {{ ticket.collection_type === 'garbage' ? 'Garbage' : 'Recycling' }}</p>
+         }
+         @if (ticket.bin_type) {
+          <p><strong>Bin:</strong> {{ ticket.bin_type === 'garbage' ? 'Garbage bin' : 'Recycling bin' }}</p>
+         }
+         @if (ticket.missed_date) {
+          <p><strong>Missed date:</strong> {{ formatDate(ticket.missed_date) }}</p>
+         }
+         @if (ticket.description) {
+          <p class="requestdescription">{{ ticket.description }}</p>
+         }
+         @if (ticket.reply_text) {
+          <div class="requestreply">
+           <strong>Reply:</strong>
+           <p>{{ ticket.reply_text }}</p>
+          </div>
+         }
+        </div>
+       }
+      </div>
+     }
+    </section>
   </div>
  }
 </main>

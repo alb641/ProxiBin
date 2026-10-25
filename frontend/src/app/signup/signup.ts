@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { Supabase } from '../services/supabase';
+import { environment } from '../../environments/environment.development';
 
 @Component({
   imports: [FormsModule, RouterLink],
@@ -242,6 +243,25 @@ export class Signup {
    return isValid;
  }
 
+ async getCoordinates(fullAddress: string) {
+  const url = 
+   'https://api.mapbox.com/search/geocode/v6/forward?q=' +
+   encodeURIComponent(fullAddress) +
+   '&country=us&limit=1&proximity=-74.437,40.645' +
+   '&access_token=' + environment.mapboxToken;
+  try {
+   const response = await fetch(url);
+   const result = await response.json();
+   if (result.features && result.features.length > 0) {
+    const coords = result.features[0].geometry.coordinates;
+    return { lat: coords[1], lng: coords[0] };
+   }
+  } catch (error) {
+   console.log('Could not find coordinates for the address:', error);
+  }
+  return null;
+ }
+
  async saveStep1() {
   this.errorMessage.set('');
   if (this.validateStep1() === false) {
@@ -249,11 +269,14 @@ export class Signup {
   }
   const client = this.supabaseService.getClient();
   const address = this.street + ', ' + this.town + ', ' + this.state + ' ' + this.zipcode;
+  const coords = await this.getCoordinates(address);
   const residentInfo = {
    user_id: this.userId,
    first_name: this.firstName,
    last_name: this.lastName,
    address_text: address,
+   lat: coords ? coords.lat : null,
+   lng: coords ? coords.lng : null,
    phone: this.phone,
    owner_type: this.ownerType,
    age_confirmed: this.ageConfirmed

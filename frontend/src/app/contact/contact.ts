@@ -59,7 +59,7 @@ export class Contact {
    isValid = false;
   }
   if (this.inquiryType === '') {
-   this.inquiryTypeError = 'Please select an inquirt type.';
+   this.inquiryTypeError = 'Please select an inquiry type.';
    isValid = false;
  }
   if (this.message.trim() === '') {

@@ -3,9 +3,10 @@ import { RouterLink, Router } from '@angular/router';
 import { Supabase } from '../services/supabase';
 import mapboxgl from 'mapbox-gl';
 import { environment } from '../../environments/environment.development';
+import { FormsModule } from '@angular/forms';
 
 @Component({
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   selector: 'app-residentdashboard',
   styleUrl: './residentdashboard.css',
   templateUrl: './residentdashboard.html',
@@ -23,8 +24,6 @@ export class Residentdashboard {
  recyclingFrequency = signal('');
  nextGarbage = signal('');
  nextRecycling = signal('');
- garbageToday = signal(false);
- recyclingToday = signal(false); 
 
  map: any;
 
@@ -50,6 +49,36 @@ export class Residentdashboard {
  monthOffset = 0;
  monthTitle = signal('');
  calendarDays = signal<any[]>([]);
+
+ ticketTypes = [
+  { value: 'missed_collection', label: 'Missed collection' },
+  { value: 'no_updates', label: 'No collection updates' },
+  { value: 'damaged_bin', label: 'Damaged bin' },
+  { value: 'new_bin', label: 'Request a new bin' },
+  { value: 'bulk_pickup', label: 'Schedule a bulk pickup' }
+ ];
+
+ ticketType = '';
+ ticketCollectionType = '';
+ ticketBinType = '';
+ ticketMissedDate = '';
+ ticketPickupDate = '';
+ ticketDescription = '';
+ 
+ ticketTypeError = '';
+ ticketCollectionTypeError = '';
+ ticketBinTypeError = '';
+ ticketMissedDateError = '';
+ ticketPickupDateError = '';
+ ticketDescriptionError = '';
+
+ ticketSending = signal(false);
+ ticketSent = signal('');
+ ticketError = signal('');
+ 
+ tickets = signal<any[]>([]);
+ ticketsLoading = signal(true);
+ ticketsError = signal('');
  
  dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -74,7 +103,7 @@ export class Residentdashboard {
    return;
   }
   if (!resident) {
-   this.errorMessage.set('We could not find our ProxiBin profile.');
+   this.errorMessage.set('We could not find your ProxiBin profile.');
    this.loading.set(false);
    return;
   }
@@ -87,22 +116,7 @@ export class Residentdashboard {
   this.garbageDay2.set(resident.garbage_day_2 ?? '');
   this.recyclingDay.set(resident.recycling_day ?? '');
   this.recyclingFrequency.set(resident.recycling_frequency ?? '');
-  if (resident.garbage_day_1) {
-   let garbageDays = this.daysUntil(resident.garbage_day_1);
-   if (resident.garbage_day_2) {
-    const secondDays = this.daysUntil(resident.garbage_day_2);
-    if (secondDays < garbageDays) {
-     garbageDays = secondDays;
-    }
-   }
-   this.nextGarbage.set(this.dayLabel(garbageDays));
-   this.garbageToday.set(garbageDays === 0);
-  }
-  if (resident.recycling_day && resident.recycling_frequency === 'weekly') {
-   const recyclingDays = this.daysUntil(resident.recycling_day);
-   this.nextRecycling.set(this.dayLabel(recyclingDays));
-   this.recyclingToday.set(recyclingDays === 0);
-  }
+  this.updateNextPickups();
   if (!resident.hauler_id) {
    this.errorMessage.set('You have not selected a hauler yet.');
    this.loading.set(false);
@@ -121,6 +135,8 @@ export class Residentdashboard {
   }
   this.loading.set(false);
   await this.loadProgress();
+  this.updateNextPickups();
+  this.loadTickets();
   this.buildCalendar();
   setTimeout(() => {
    this.createMap(); 
@@ -132,6 +148,41 @@ export class Residentdashboard {
    }
    this.startLiveUpdates();
   }, 0);
+ }
+
+ updateNextPickups() {
+  if (this.garbageDay1() !== '') {
+   let garbageDays = this.daysUntil(this.garbageDay1());
+   if (garbageDays === 0 && this.pickupStatus('garbage') ==='completed') {
+    garbageDays = 7;
+   }
+   if (this.garbageDay2() !== '') {
+    let secondDays = this.daysUntil(this.garbageDay2());
+    if (secondDays === 0 && this.pickupStatus('garbage') === 'completed') {
+     secondDays = 7;
+    }
+    if (secondDays < garbageDays) {
+     garbageDays = secondDays;
+    }
+   }
+   const garbageStatus = this.pickupStatus('garbage');
+   if (garbageStatus !== '' && garbageStatus !== 'completed') {
+    garbageDays = 0;
+   }
+   this.nextGarbage.set(this.dayLabel(garbageDays));
+  }
+  this.nextRecycling.set('');
+  if (this.recyclingDay() !== '' && this.recyclingFrequency() === 'weekly') {
+   let recyclingDays = this.daysUntil(this.recyclingDay());
+   if (recyclingDays === 0 && this.pickupStatus('recycling') === 'completed') {
+    recyclingDays = 7;
+   }
+   this.nextRecycling.set(this.dayLabel(recyclingDays));
+  }
+  const recyclingStatus = this.pickupStatus('recycling');
+  if (recyclingStatus !== '' && recyclingStatus !== 'completed') {
+   this.nextRecycling.set('Today');
+  }
  }
 
  daysUntil(dayName: string) {
@@ -370,9 +421,9 @@ export class Residentdashboard {
 
  startLiveUpdates() {
   const client = this.supabaseService.getClient();
-   this.channel = client 
-    .channel('dashboard-updates')
-    .on(
+   this.channel = client.channel('dashboard-updates'); 
+    if (this.truckId !== '') {
+    this.channel.on(
      'postgres_changes',
      { event: 'UPDATE', schema: 'public', table: 'truck_positions', filter: 'truck_id=eq.' + this.truckId },
      (payload: any) => {
@@ -384,12 +435,14 @@ export class Residentdashboard {
        this.showTruck(position.lat, position.lng);
       }
      }
-    )
-    .on(
+    );
+   }
+    this.channel.on(
      'postgres_changes',
      { event: '*', schema: 'public', table: 'collection_progress', filter: 'resident_id=eq.' + this.residentId },
      async () => {
       await this.loadProgress();
+      this.updateNextPickups();
       this.buildCalendar();
       if (this.allPickupsDone() && !this.pickupsDone) {
        this.pickupsDone = true;
@@ -401,8 +454,8 @@ export class Residentdashboard {
        this.loadTruck();
       }
      }
-    )
-    .subscribe((status: string) => {
+    );
+    this.channel.subscribe((status: string) => {
      console.log('Live updates:', status);
     });
  }
@@ -469,7 +522,16 @@ export class Residentdashboard {
    this.truckId = data[0].truck_id;
   }
  }
- 
+
+ pickupStatus(type: string) {
+  for (const pickup of this.todayPickups()) {
+   if (pickup.collection_type === type) {
+    return pickup.status;
+   }
+  }
+  return '';
+ } 
+
  statusLabel(status: string) {
   if (status === 'approaching') {
    return 'Approaching';
@@ -499,6 +561,183 @@ export class Residentdashboard {
   }
   return stops + ' stops away';
  }
+ 
+ async loadTickets() {
+  this.ticketsLoading.set(true);
+  this.ticketsError.set('');
+  const client = this.supabaseService.getClient();
+  const { data, error } = await client
+   .from('tickets')
+   .select('id, ticket_type, collection_type, bin_type, missed_date, pickup_date, description, status, reply_text, created_at')
+   .eq('resident_id', this.residentId)
+   .order('created_at', { ascending: false });
+  this.ticketsLoading.set(false);
+  if (error) {
+   console.log(error);
+   this.ticketsError.set('We could not load your requests. Please try again later.');
+   return;
+  }
+  this.tickets.set(data ?? []);
+ }
+
+ ticketTypeLabel(value: string) {
+  for (const type of this.ticketTypes) {
+   if (type.value === value) {
+    return type.label;
+   }
+  }
+  return 'Request';
+ }
+ 
+ ticketStatusLabel(status: string) {
+  if (status === 'in_progress') {
+   return 'In Progress';
+  }
+  if (status === 'resolved') {
+   return 'Resolved';
+  }
+  if (status === 'closed') {
+   return 'Closed';
+  }
+  return 'Open';
+ }
+ 
+ formatDate(text: string) {
+  if (!text) {
+   return '';
+  }
+  if (text.length === 10) {
+   text = text + 'T00:00:00';
+  } else if (!text.endsWith('Z') && !text.includes('+')) {
+   text = text.substring(0, 19) + 'Z';
+  }
+  return new Date(text).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+ }
+
+ ticketReference(id: string) {
+  if (!id) {
+   return '';
+  }
+  return '#' + id.substring(0, 8).toUpperCase();
+ }
+
+ async submitTicket() {
+  this.ticketSent.set('');
+  this.ticketError.set('');
+  if (this.validateTicket() === false) {
+   return;
+  }
+  const type = this.ticketType;
+  const ticketInfo: any = {
+   resident_id: this.residentId,
+   hauler_id: this.haulerId, 
+   ticket_type: type,
+   collection_type: null,
+   bin_type: null,
+   missed_date: null,
+   pickup_date: null,
+   description: this.ticketDescription.trim()
+  };
+  if (type === 'missed_collection' || type === 'no_updates') {
+   ticketInfo.collection_type = this.ticketCollectionType;
+  }
+  if (type === 'missed_collection') {
+   ticketInfo.missed_date = this.ticketMissedDate;
+  }
+  if (type === 'damaged_bin' || type === 'new_bin') {
+   ticketInfo.bin_type = this.ticketBinType;
+  }
+  if (type === 'bulk_pickup') {
+   ticketInfo.pickup_date = this.ticketPickupDate;
+  } 
+  this.ticketSending.set(true);
+  const client = this.supabaseService.getClient();
+  const { error } = await client.from('tickets').insert(ticketInfo);
+  this.ticketSending.set(false);
+  if (error) {
+   console.log(error);
+   this.ticketError.set('We could not send your request. Please try again.');
+   return;
+  }
+  this.clearTicketFields(); 
+  this.ticketType = '';
+  this.ticketSent.set('Your request has been sent. You can follow it under My Requests below.');
+  await this.loadTickets();
+ }
+
+ clearTicketFields() {
+  this.ticketCollectionType = '';
+  this.ticketBinType = '';
+  this.ticketMissedDate = '';
+  this.ticketPickupDate = '';
+  this.ticketDescription = '';
+  this.ticketTypeError = '';
+  this.ticketCollectionTypeError = '';
+  this.ticketBinTypeError = '';
+  this.ticketMissedDateError = '';
+  this.ticketPickupDateError = '';
+  this.ticketDescriptionError = '';
+  this.ticketSent.set('');
+  this.ticketError.set('');
+ }
+ 
+ validateTicket() {
+  this.ticketTypeError = '';
+  this.ticketCollectionTypeError = '';
+  this.ticketBinTypeError = '';
+  this.ticketMissedDateError = '';
+  this.ticketPickupDateError = '';
+  this.ticketDescriptionError = '';
+  const type = this.ticketType;
+  const today = new Date().toLocaleDateString('en-CA');
+  let isValid = true;
+  if (type === '') {
+   this.ticketTypeError = 'Please choose a request type.';
+   return false;
+  }
+  if (type === 'missed_collection' || type === 'no_updates') {
+   if (this.ticketCollectionType === '') {
+    this.ticketCollectionTypeError = 'Please choose garbage or recycling.';
+    isValid = false;
+   }
+  }
+  if (type === 'missed_collection') {
+   if (this.ticketMissedDate === '') {
+    this.ticketMissedDateError = 'Please choose the date of the missed collection.';
+    isValid = false;
+   } else if (this.ticketMissedDate > today) {
+    this.ticketMissedDateError = 'The missed collection date cannot be in the future.';
+    isValid = false;
+   }
+  }
+  if (type === 'damaged_bin' || type === 'new_bin') {
+   if (this.ticketBinType === '') {
+    this.ticketBinTypeError = 'Please choose the bin type.';
+    isValid = false;
+   }
+  }
+  if (type === 'bulk_pickup') {
+   if (this.ticketPickupDate === '') {
+    this.ticketPickupDateError = 'Please choose a pickup date.';
+    isValid = false; 
+   } else if (this.ticketPickupDate <= today) {
+    this.ticketPickupDateError = 'Please choose a date after today.';
+    isValid = false;
+   }
+  }
+  if (this.ticketDescription.trim() === '') {
+   if (type === 'bulk_pickup') {
+    this.ticketDescriptionError = 'Please list the items you want picked up.';
+   } else {
+    this.ticketDescriptionError = 'Please describe the issue.';
+   }
+   isValid = false;
+   } else if (this.ticketDescription.length > 250) {
+    this.ticketDescriptionError = 'Please keep it to 250 characters or less.';
+    isValid = false;
+   }
+   return isValid;
+ }  
 
  async signOut() {
   const client = this.supabaseService.getClient();
