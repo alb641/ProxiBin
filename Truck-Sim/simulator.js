@@ -199,9 +199,9 @@ async function startSimulator() {
 
   // Retrieve all active trucks from Supabase
   const { data: trucks, error: truckError } = await supabase
-    .from("trucks")
-    .select("id, hauler_id, truck_name")
-    .eq("is_active", true);
+  .from("trucks")
+  .select("id, hauler_id, truck_name, start_lat, start_lng")
+  .eq("is_active", true);
 
   if (truckError) {
     console.error("Error loading trucks:", truckError.message);
@@ -233,6 +233,7 @@ const { data: pickups, error } = await supabase
   .from("collection_progress")
   .select("id, resident_id, route_order, collection_type, schedule_date, collection_run_id, status")
   .eq("truck_id", truck.id)
+  .eq("collection_type", "garbage")
   .eq("schedule_date", process.env.SIM_DATE ||new Date().toLocaleDateString("en-CA", {
   timeZone: "America/New_York"
 }))
