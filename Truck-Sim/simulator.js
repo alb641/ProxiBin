@@ -8,6 +8,8 @@ const { createClient } = require("@supabase/supabase-js");
 // Number of remaining stops before a pickup is approaching
 const APPROACHING_THRESHOLD = 5
 
+const DRY_RUN = process.argv.includes("--dry-run");
+
 // Simulated driving settings
 const TRAVEL_TIME_MS = 10000;
 const POSITION_UPDATE_MS = 2000;
@@ -49,6 +51,49 @@ async function getDrivingRoute(start, end) {
     console.error("Mapbox route error:", error.message);
     return null;
   }
+}
+
+ // Calculate the most efficient pickup order using Mapbox
+async function optimizeRoute(start, pickups) {
+  if (pickups.length > 11) {
+    throw new Error("Mapbox supports up to 11 pickups plus depot.");
+  }
+
+  const coordinates = [
+    start,
+    ...pickups.map(p => ({
+      lat: p.resident.lat,
+      lng: p.resident.lng
+    }))
+  ];
+
+  const coordinateString = coordinates
+    .map(p => `${p.lng},${p.lat}`)
+    .join(";");
+
+  const url =
+    `https://api.mapbox.com/optimized-trips/v1/mapbox/driving/${coordinateString}` +
+    `?roundtrip=true&source=first&destination=any` +
+    `&access_token=${process.env.MAPBOX_TOKEN}`;
+
+  const response = await fetch(url);
+  const result = await response.json();
+
+  if (!response.ok || result.code !== "Ok") {
+    throw new Error(result.message || "Route optimization failed");
+  }
+
+  if (!result.waypoints ||
+      result.waypoints.length !== coordinates.length) {
+    throw new Error("Invalid optimization response");
+  }
+
+  return pickups
+    .map((pickup, index) => ({
+      ...pickup,
+      optimizedOrder: result.waypoints[index + 1].waypoint_index
+    }))
+    .sort((a, b) => a.optimizedOrder - b.optimizedOrder);
 }
 
 // Simulate driving along a road route
@@ -174,7 +219,7 @@ async function updateApproachingStatuses(truckId, runId) {
   // Update pickups that have five or fewer unfinished stops before them
   for (let i = 0; i < pickups.length; i++) {
 
-    if (i <= APPROACHING_THRESHOLD && pickups[i].status === "upcoming") {
+    if (i < APPROACHING_THRESHOLD && pickups[i].status === "upcoming") {
 
       const { error: updateError } = await supabase
         .from("collection_progress")
@@ -256,6 +301,142 @@ if (!pickups || pickups.length === 0) {
   return;
 }
 
+
+  // Load resident coordinates for route optimization
+  const { data: residents, error: residentsError } = await supabase
+    .from("residents")
+    .select("id, first_name, last_name, lat, lng")
+    .in("id", [...new Set(pickups.map(p => p.resident_id))]);
+
+  if (residentsError) {
+    console.error("Error loading residents:", residentsError.message);
+    return;
+  }
+
+  const residentMap = new Map(residents.map(r => [r.id, r]));
+
+  for (const pickup of pickups) {
+    pickup.resident = residentMap.get(pickup.resident_id);
+
+    if (!pickup.resident ||
+        !Number.isFinite(Number(pickup.resident.lat)) ||
+        !Number.isFinite(Number(pickup.resident.lng))) {
+      console.error("Missing resident coordinates:", pickup.resident_id);
+      return;
+    }
+  }
+
+  // Group pickups by collection run
+  const runGroups = new Map();
+
+  for (const pickup of pickups) {
+    if (!pickup.collection_run_id) {
+      console.error("Pickup is missing a collection run ID.");
+      return;
+    }
+
+    if (!runGroups.has(pickup.collection_run_id)) {
+      runGroups.set(pickup.collection_run_id, []);
+    }
+
+    runGroups.get(pickup.collection_run_id).push(pickup);
+  }
+
+  const plannedPickups = [];
+
+  for (const [runId, runPickups] of runGroups) {
+    const { data: run, error: runError } = await supabase
+      .from("collection_runs")
+      .select("status")
+      .eq("id", runId)
+      .eq("truck_id", truck.id)
+      .single();
+
+    if (runError || !run) {
+      console.error("Cannot load collection run:", runId);
+      return;
+    }
+
+    // Do not change the order of a route already in progress
+    if (run.status !== "scheduled") {
+      plannedPickups.push(...runPickups);
+      continue;
+    }
+
+    const depot = {
+      lat: truck.start_lat,
+      lng: truck.start_lng
+    };
+
+    if (!Number.isFinite(Number(depot.lat)) ||
+        !Number.isFinite(Number(depot.lng))) {
+      console.error("Truck has no valid depot coordinates:", truck.truck_name);
+      return;
+    }
+
+    let optimized;
+
+    try {
+      optimized = await optimizeRoute(depot, runPickups);
+    } catch (error) {
+      console.error("Optimization failed:", error.message);
+      return;
+    }
+
+    console.log("Optimized route for:", truck.truck_name);
+
+    console.table(optimized.map((p, i) => ({
+      resident: `${p.resident.first_name} ${p.resident.last_name}`,
+      oldOrder: p.route_order,
+      newOrder: i + 1
+    })));
+
+    if (!DRY_RUN) {
+      // Use temporary order numbers to avoid uniqueness conflicts
+      const temporaryBase =
+        Math.max(1000000, ...runPickups.map(p => p.route_order || 0)) + 100;
+
+      for (let i = 0; i < optimized.length; i++) {
+        const { error } = await supabase
+          .from("collection_progress")
+          .update({ route_order: temporaryBase + i })
+          .eq("id", optimized[i].id)
+          .eq("collection_run_id", runId);
+
+        if (error) {
+          console.error("Temporary route update failed:", error.message);
+          return;
+        }
+      }
+
+      for (let i = 0; i < optimized.length; i++) {
+        const { error } = await supabase
+          .from("collection_progress")
+          .update({ route_order: i + 1 })
+          .eq("id", optimized[i].id)
+          .eq("collection_run_id", runId);
+
+        if (error) {
+          console.error("Route update failed:", error.message);
+          return;
+        }
+
+        optimized[i].route_order = i + 1;
+      }
+    }
+
+    plannedPickups.push(...optimized);
+  }
+
+  if (DRY_RUN) {
+    console.log("DRY RUN: No database changes or truck movement.");
+    return;
+  }
+
+  // Use the optimized pickup sequence for movement
+  pickups.splice(0, pickups.length, ...plannedPickups);
+
+
 console.log("Truck:", truck.truck_name);
 console.log("Pickups loaded:", pickups.length);
 
@@ -282,6 +463,18 @@ if (
     console.error("Could not update the next collection run.");
     return false;
   }
+  
+const { error: nextRunError } = await supabase
+  .from("collection_runs")
+  .update({ status: "in_progress" })
+  .eq("id", pickup.collection_run_id)
+  .eq("truck_id", truck.id)
+  .eq("status", "scheduled");
+
+if (nextRunError) {
+  console.error("Could not start next collection run:", nextRunError.message);
+  return false;
+}
 
   console.log("Starting next collection run:", pickup.collection_run_id);
 }
@@ -455,11 +648,45 @@ if (remainingPickups === 0) {
     console.log("Arrived at:", new Date().toISOString());
 
     // Move to the next scheculed pickup
+   
     index++;
-    //Stop after all scheduled pickups have been visited
-    if (index >= pickups.length){
-      console.log("All scheduled pickups have been visited for:", truck.truck_name);
+
+    if (index >= pickups.length) {
+      console.log("All pickups completed for:", truck.truck_name);
+
+      const depot = {
+        lat: truck.start_lat,
+        lng: truck.start_lng
+      };
+
+      const { data: lastPosition, error: lastPositionError } = await supabase
+        .from("truck_positions")
+        .select("lat, lng")
+        .eq("truck_id", truck.id)
+        .single();
+
+      if (lastPositionError || !lastPosition) {
+        console.error("Could not load truck position for depot return.");
+        return false;
+      }
+
+      console.log("Returning to depot:", truck.truck_name);
+
+      const returned = await driveToStop(
+        truck,
+        { lat: lastPosition.lat, lng: lastPosition.lng },
+        depot,
+        pickup
+      );
+
+      if (!returned) {
+        console.error("Truck could not return to depot.");
+        return false;
+      }
+
+      console.log("Truck returned to depot:", truck.truck_name);
     }
+
   }
 
   // Update approaching statuses for the first collection run only
@@ -476,6 +703,60 @@ if (!updated) {
   console.error("Could not update approaching statuses.");
   return;
 }
+
+
+  // Initialize the truck at its depot for a new run
+  const { data: firstRun, error: firstRunError } = await supabase
+    .from("collection_runs")
+    .select("status")
+    .eq("id", firstRunId)
+    .eq("truck_id", truck.id)
+    .single();
+
+  if (firstRunError || !firstRun) {
+    console.error("Could not check starting run status.");
+    return;
+  }
+
+  if (firstRun.status === "scheduled") {
+    const { data, error: resetError } = await supabase
+      .from("truck_positions")
+      .update({
+        lat: truck.start_lat,
+        lng: truck.start_lng,
+        updated_at: new Date().toISOString()
+      })
+      .eq("truck_id", truck.id)
+      .select("id")
+      .single();
+
+    if (resetError || !data) {
+      console.error("Could not initialize truck at depot.");
+      return;
+    }
+
+    console.log("Truck starting at depot:", truck.truck_name);
+  }
+
+  
+  // Mark the collection run as started before movement
+  if (firstRun.status === "scheduled") {
+    const { data: startedRun, error: startError } = await supabase
+      .from("collection_runs")
+      .update({ status: "in_progress" })
+      .eq("id", firstRunId)
+      .eq("truck_id", truck.id)
+      .eq("status", "scheduled")
+      .select("id")
+      .single();
+
+    if (startError || !startedRun) {
+      console.error("Could not start collection run:", startError?.message);
+      return;
+    }
+
+    console.log("Collection run started:", firstRunId);
+  }
 
 // Move immediately when the simulator starts
 const firstMove = await moveTruck();
