@@ -54,20 +54,20 @@ export class Signup {
  selectedHaulerName = '';
  garbageDay1 = '';
  garbageDay2 = '';
- recyclingDay = '';
- recyclingFrequency = '';
  scheduleConfirmed = false;
  weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
  
  haulerError = '';
  garbageDay1Error = '';
  garbageDay2Error = '';
- recyclingDayError = '';
- recyclingFrequencyError = '';
  confirmError = '';
 
  emailAlerts = true; 
-
+ 
+ recyclingConfirmed = false;
+ recyclingConfirmError = '';
+ recyclingProviderName = '';
+ 
  constructor(private supabaseService: Supabase, private router: Router) {}
 
  async ngOnInit() {
@@ -98,6 +98,7 @@ export class Signup {
       this.selectedHaulerName = hauler.name;
      }
     }
+    await this.loadRecyclingProvider();
     this.step.set(4);
    } else {
     this.step.set(2);
@@ -122,8 +123,6 @@ export class Signup {
   this.selectedHaulerId = resident.hauler_id ?? '';
   this.garbageDay1 = resident.garbage_day_1 ?? '';
   this.garbageDay2 = resident.garbage_day_2 ?? '';
-  this.recyclingDay = resident.recycling_day ?? '';
-  this.recyclingFrequency = resident.recycling_frequency ?? '';
   this.emailAlerts = resident.email_alerts ?? true;
  }
 
@@ -333,7 +332,7 @@ export class Signup {
 
  async loadHaulers() {
    const client = this.supabaseService.getClient();
-   const { data, error } = await client.from('haulers').select('id, name');
+   const { data, error } = await client.from('haulers').select('id, name').eq('provider_type', 'Garbage Hauler');
    if (error) {
     console.log(error);
     this.errorMessage.set('We could not load the haulers. Please try again.');
@@ -351,19 +350,13 @@ export class Signup {
     this.haulerError = '';
     this.garbageDay1Error = '';
     this.garbageDay2Error = '';
-    this.recyclingDayError = '';
-    this.recyclingFrequencyError = '';
     this.confirmError = '';
     if (hauler.name === 'X-Cel Carting') {
      this.garbageDay1 = 'Monday';
      this.garbageDay2 = 'Thursday';
-     this.recyclingDay = 'Wednesday';
-     this.recyclingFrequency = 'biweekly';
     } else {
      this.garbageDay1 = '';
      this.garbageDay2 = '';
-     this.recyclingDay = '';
-     this.recyclingFrequency = '';
     }
    }
    isXcel() {
@@ -373,7 +366,6 @@ export class Signup {
      this.haulerError = '';
      this.garbageDay1Error = '';
      this.garbageDay2Error = '';
-     this.recyclingDayError = '';
      this.confirmError = '';
      let isValid = true;
      if (this.selectedHaulerId === '') {
@@ -394,16 +386,26 @@ export class Signup {
         this.garbageDay2Error = 'Your second garbage day must be different from the first.';
         isValid = false;
       }
-      if (this.recyclingDay === '') {
-       this.recyclingDayError = 'Please select a day.';
-       isValid = false;
-      }
-      if (this.recyclingFrequency === '') {
-       this.recyclingFrequencyError = 'Please select the frequency.';
-       isValid = false;
-      }
      }
      return isValid;
+   }
+  
+   async loadRecyclingProvider() {
+    const client = this.supabaseService.getClient();
+    const { data,error } = await client
+     .from('haulers')
+     .select('name')
+     .eq('provider_type', 'Municipal/County recycling')
+     .limit(1)
+     .maybeSingle();
+    if (error) {
+     console.log(error);
+    }
+    if (data) {
+     this.recyclingProviderName = data.name;
+    } else {
+     this.recyclingProviderName = 'Your county';
+    }
    }
 
    async saveStep3() {
@@ -418,8 +420,6 @@ export class Signup {
          hauler_id: this.selectedHaulerId,
          garbage_day_1: this.garbageDay1,
          garbage_day_2: this.garbageDay2 === '' ? null : this.garbageDay2,
-         recycling_day: this.recyclingDay,
-         recycling_frequency: this.recyclingFrequency
        })
        .eq('user_id', this.userId);
      if (error) {
@@ -427,6 +427,7 @@ export class Signup {
       this.errorMessage.set('Something went wrong saving your hauler and schedule. Please try again.');
       return;
      }
+    await this.loadRecyclingProvider();
     this.step.set(4);
    } 
  
@@ -442,9 +443,18 @@ export class Signup {
      this.errorMessage.set('Something went wrong saving your email preference. Please try again.');
      return;
     }
-    this.step.set(5);
+    this.step.set(6);
     this.checkSetup();
    }
+
+  confirmRecycling() {
+   this.recyclingConfirmError = '';
+   if (this.recyclingConfirmed === false) {
+    this.recyclingConfirmError = 'Please confirm that you understand who collects your recycling.';
+    return;
+   }
+   this.step.set(5);
+  }
  
   async checkSetup() {
    this.errorMessage.set('');
@@ -460,7 +470,7 @@ export class Signup {
     this.errorMessage.set('We could not confirm your information. Please try again.');
     return;
    }
-   if (!data.first_name || !data.last_name || !data.address_text || !data.phone || !data.owner_type || !data.age_confirmed || !data.hauler_id || !data.garbage_day_1 || !data.recycling_day || !data.recycling_frequency) {
+   if (!data.first_name || !data.last_name || !data.address_text || !data.phone || !data.owner_type || !data.age_confirmed || !data.hauler_id || !data.garbage_day_1) {
     this.errorMessage.set('Some of your information is missing. Please go back and complete each step.');
    return;
    }

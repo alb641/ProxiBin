@@ -20,8 +20,6 @@ export class Residentdashboard {
  haulerName = signal('');
  garbageDay1 = signal('');
  garbageDay2 = signal('');
- recyclingDay = signal('');
- recyclingFrequency = signal('');
  nextGarbage = signal('');
  nextRecycling = signal('');
 
@@ -29,6 +27,8 @@ export class Residentdashboard {
 
  truckId = '';
  haulerId = '';
+ recyclingProviderId = '';
+ recyclingProviderName = '';
  truckMarker: any;
  noTruck = signal(false);
 
@@ -114,9 +114,8 @@ export class Residentdashboard {
   this.address.set(resident.address_text ?? '');
   this.garbageDay1.set(resident.garbage_day_1 ?? '');
   this.garbageDay2.set(resident.garbage_day_2 ?? '');
-  this.recyclingDay.set(resident.recycling_day ?? '');
-  this.recyclingFrequency.set(resident.recycling_frequency ?? '');
   this.updateNextPickups();
+  this.loadNextRecycling();
   if (!resident.hauler_id) {
    this.errorMessage.set('You have not selected a hauler yet.');
    this.loading.set(false);
@@ -136,6 +135,7 @@ export class Residentdashboard {
   this.loading.set(false);
   await this.loadProgress();
   this.updateNextPickups();
+  await this.loadRecyclingProvider();
   this.loadTickets();
   this.buildCalendar();
   setTimeout(() => {
@@ -148,6 +148,33 @@ export class Residentdashboard {
    }
    this.startLiveUpdates();
   }, 0);
+ }
+
+ async loadNextRecycling() {
+  const client = this.supabaseService.getClient(); 
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const later = new Date(startOfToday);
+  later.setDate(later.getDate() + 21);
+  const { data, error } = await client.rpc('get_recycling_dates', {
+   start_date: startOfToday.toLocaleDateString('en-CA'),
+   end_date: later.toLocaleDateString('en-CA')
+  });
+  if (error || !data || data.length === 0) {
+   if (error) {
+    console.log(error);
+   }
+   return;
+  }
+  let first = data[0].collection_date;
+  for (const row of data) {
+   if (row.collection_date < first) {
+    first = row.collection_date;
+   }
+  }
+  const date = new Date(first + 'T00:00:00');
+  const days = Math.round((date.getTime() - startOfToday.getTime()) / 86400000);
+  this.nextRecycling.set(this.dayLabel(days));
  }
 
  updateNextPickups() {
@@ -171,20 +198,8 @@ export class Residentdashboard {
    }
    this.nextGarbage.set(this.dayLabel(garbageDays));
   }
-  this.nextRecycling.set('');
-  if (this.recyclingDay() !== '' && this.recyclingFrequency() === 'weekly') {
-   let recyclingDays = this.daysUntil(this.recyclingDay());
-   if (recyclingDays === 0 && this.pickupStatus('recycling') === 'completed') {
-    recyclingDays = 7;
-   }
-   this.nextRecycling.set(this.dayLabel(recyclingDays));
-  }
-  const recyclingStatus = this.pickupStatus('recycling');
-  if (recyclingStatus !== '' && recyclingStatus !== 'completed') {
-   this.nextRecycling.set('Today');
-  }
  }
-
+ 
  daysUntil(dayName: string) {
   const todayNumber = new Date().getDay();
   const dayNumber = this.dayNames.indexOf(dayName);
@@ -225,6 +240,17 @@ export class Residentdashboard {
    .gte('schedule_date', firstText)
    .lte('schedule_date', lastText);
   const rows = monthRows || [];
+  const { data: recyclingRows, error: recyclingError } = await client.rpc('get_recycling_dates', {
+   start_date: firstText,
+   end_date: lastText
+  });
+  if (recyclingError) {
+   console.log(recyclingError);
+  }
+  const recyclingDates: string[] = [];
+  for (const row of recyclingRows || []) {
+   recyclingDates.push(row.collection_date);
+  }
   const days = [];
   for (let i = 0; i < firstDay.getDay(); i++) {
    days.push({ number: '', garbage: false, recycling: false, today: false, past: false, done: false });
@@ -234,7 +260,6 @@ export class Residentdashboard {
    const dayName = this.dayNames[date.getDay()];
    const dateText = date.toLocaleDateString('en-CA');
    let garbageRow = false;
-   let recyclingRow = false;
    let rowCount = 0;
    let doneCount = 0;
    for (const row of rows) {
@@ -242,9 +267,6 @@ export class Residentdashboard {
      rowCount++;
      if (row.collection_type === 'garbage') {
       garbageRow = true;
-     }
-     if (row.collection_type === 'recycling') {
-      recyclingRow = true;
      }
      if (row.status === 'completed') {
       doneCount++;
@@ -254,7 +276,7 @@ export class Residentdashboard {
    days.push({
     number: d,
     garbage: dayName === this.garbageDay1() || dayName === this.garbageDay2() || garbageRow,
-    recycling: (this.recyclingFrequency() === 'weekly' && dayName === this.recyclingDay()) || recyclingRow,
+    recycling: recyclingDates.includes(dateText),
     today: date.getTime() === startOfToday.getTime(),
     past: date < startOfToday,
     done: rowCount > 0 && doneCount === rowCount
@@ -561,6 +583,23 @@ export class Residentdashboard {
   }
   return stops + ' stops away';
  }
+
+ async loadRecyclingProvider() {
+  const client = this.supabaseService.getClient(); 
+  const { data, error } = await client
+   .from('haulers')
+   .select('id, name')
+   .eq('provider_type', 'Municipal/County recycling')
+   .limit(1)
+   .maybeSingle();
+  if (error) {
+   console.log(error);
+  }
+  if (data) {
+   this.recyclingProviderId = data.id;
+   this.recyclingProviderName = data.name;
+  }
+ }
  
  async loadTickets() {
   this.ticketsLoading.set(true);
@@ -568,7 +607,7 @@ export class Residentdashboard {
   const client = this.supabaseService.getClient();
   const { data, error } = await client
    .from('tickets')
-   .select('id, ticket_type, collection_type, bin_type, missed_date, pickup_date, description, status, reply_text, created_at')
+   .select('id, ticket_type, collection_type, bin_type, missed_date, pickup_date, description, status, reply_text, created_at, haulers(name, provider_type)')
    .eq('resident_id', this.residentId)
    .order('created_at', { ascending: false });
   this.ticketsLoading.set(false);
@@ -621,6 +660,29 @@ export class Residentdashboard {
   return '#' + id.substring(0, 8).toUpperCase();
  }
 
+ isRecyclingTicket() {
+  if ((this.ticketType === 'missed_collection' || this.ticketType === 'no_updates') && this.ticketCollectionType === 'recycling') {
+   return true;
+  }
+  if ((this.ticketType === 'damaged_bin' || this.ticketType === 'new_bin') && this.ticketBinType === 'recycling') {
+   return true;
+  }
+  return false;
+ }
+
+ formProviderReady() {
+  if (this.ticketType === 'bulk_pickup') {
+   return true;
+  }
+  if ((this.ticketType === 'missed_collection' || this.ticketType === 'no_updates') && this.ticketCollectionType !== '') {
+   return true;
+  }
+  if ((this.ticketType === 'damaged_bin' || this.ticketType === 'new_bin') && this.ticketBinType !== '') {
+   return true;
+  }
+  return false;
+ }
+
  async submitTicket() {
   this.ticketSent.set('');
   this.ticketError.set('');
@@ -638,6 +700,9 @@ export class Residentdashboard {
    pickup_date: null,
    description: this.ticketDescription.trim()
   };
+  if (this.isRecyclingTicket() && this.recyclingProviderId !== '') {
+   ticketInfo.hauler_id = this.recyclingProviderId;
+  }
   if (type === 'missed_collection' || type === 'no_updates') {
    ticketInfo.collection_type = this.ticketCollectionType;
   }

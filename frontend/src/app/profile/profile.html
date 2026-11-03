@@ -1,0 +1,172 @@
+<header class="residentnav">
+ <a routerLink="/residentdashboard"><img src="proxibin-logo.svg" alt="ProxiBin dashboard"></a>
+ <div class="navbuttons">
+  <a routerLink="/residentdashboard" class="buttonback">Back to Dashboard</a>
+  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ </div>
+</header>
+<main class="profilepage">
+ @if (loading()) {
+  <p class="message">Loading your profile...</p>
+ } @else if (errorMessage()) {
+  <div class="errorbox">
+   <p>{{ errorMessage() }}</p>
+  </div>
+ } @else {
+  <h1>My Profile</h1>
+  <section class="profilecard">
+   <h2>Personal Information</h2>
+   <div class="row">
+    <div class="field">
+     <label for="firstName">First Name</label>
+     <input id="firstName" type="text" [(ngModel)]="firstName">
+     @if (firstNameError) {
+      <p class="fielderror">{{ firstNameError }}</p>
+     }
+    </div>
+    <div class="field">
+     <label for="lastName">Last Name</label>
+     <input id="lastName" type="text" [(ngModel)]="lastName">
+     @if (lastNameError) {
+      <p class="fielderror">{{ lastNameError }}</p>
+     }
+    </div>
+   </div>
+   <div class="field"> 
+    <label for="phone">Phone</label>
+    <input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="1234567890" [(ngModel)]="phone">
+    @if (phoneError) {
+     <p class="fieldError">{{ phoneError }}</p>
+    }
+   </div>
+   <label class="alerttoggle">
+    <input type="checkbox" [(ngModel)]="emailAlerts">
+    Send me email alerts
+    @if (emailAlerts) {
+     <span class="status on">On</span>
+    } @else {
+     <span class="status off">Off</span>
+    }
+   </label>
+   @if (infoError()) {
+    <p class="error">{{ infoError() }}</p>
+   }
+   @if (infoMessage()) {
+    <p class="saved">{{ infoMessage() }}</p>
+   }
+   <div class="saverow">
+    <button class="buttonsave" (click)="saveInfo()" [disabled]="infoSaving()">
+    @if (infoSaving()) {
+     Saving...
+    } @else {
+     Save Information
+    }
+    </button>
+   </div>
+  </section>
+  <section class="profilecard">
+   <h2>Address</h2>
+   <div class="field">
+    <label for="street">Street Address</label>
+    <input id="street" type="text" [(ngModel)]="street">
+    @if (streetError) {
+     <p class="fielderror">{{ streetError }}</p>
+    }
+   </div>
+   <div class="row">
+    <div class="field">
+     <label for="town">Town</label>
+     <input id="town" type="text" [(ngModel)]="town">
+     @if (townError) {
+      <p class="fielderror">{{ townError }}</p>
+     }
+    </div>
+    <div class="field"> 
+     <label for="state">State</label>
+     <input id="state" type="text" [(ngModel)]="state" readonly>
+    </div>
+    <div class="field">
+     <label for="zipcode">Zip Code</label>
+     <input id="zipcode" type="text" inputmode="numeric" maxlength="5" [(ngModel)]="zipcode">
+     @if (zipcodeError) {
+      <p class="fielderror">{{ zipcodeError }}</p>
+     }
+    </div>
+   </div>
+   <p class="note">Changing your address updates your home on the dashboad map. Your pickup schedule stays the same.</p>
+   @if (addressError()) {
+    <p class="error">{{ addressError() }}</p>
+   }
+   @if (addressMessage()) {
+    <p class="saved">{{ addressMessage() }}</p>
+   }
+   <div class="saverow">
+    <button class="buttonsave" (click)="saveAddress()" [disabled]="addressSaving()">
+     @if (addressSaving()) {
+      Saving...
+     } @else {
+      Save Address
+     }
+    </button>
+   </div>
+  </section>
+  <section class="profilecard"> 
+   <h2>Pickup Schedule</h2>
+   <p><strong>Garbage hauler:</strong> {{ haulerName }}</p>
+   @if (isXcel()) {
+    <div class="schedule">
+     <p><strong>Garbage:</strong> Monday and Thursday</p>
+     <p class="note">Your garbage days are set by X-Cel Carting.</p>
+    </div>
+   } @else {
+    <div class="row">
+     <div class="field">
+      <label for="garbageDay1">Garbage Pickup Day</label>
+      <select id="garbageDay1" [(ngModel)]="garbageDay1">
+       <option value="">Choose a day</option>
+       @for (day of weekdays; track day) {
+        <option [value]="day">{{ day }}</option>
+       }
+      </select>
+      @if (garbageDay1Error) {
+       <p class="fielderror">{{ garbageDay1Error }}</p>
+      }
+     </div>
+     <div class="field">
+      <label for="garbageDay2">Second Garbage Day (optional)</label>
+      <select id="garbageDay2" [(ngModel)]="garbageDay2">
+       <option value="">None</option>
+       @for (day of weekdays; track day) {
+        <option [value]="day">{{ day }}</option>
+       }
+      </select>
+      @if (garbageDay2Error) {
+       <p class="fielderror">{{ garbageDay2Error }}</p>
+      }
+     </div>
+    </div>
+   }
+   <div class="schedule recyclinginfo">
+    <p><strong>Recycling:</strong> Every other Thursday</p>
+    <p class="note">Recycling is collected by {{ recyclingProviderName }}, not your hauler.</p>
+   </div>
+   @if (!isXcel()) {
+    @if (scheduleError()) {
+     <p class="error">{{ scheduleError() }}</p>
+    }
+    @if (scheduleMessage()) {
+     <p class="saved">{{ scheduleMessage() }}</p>
+    }
+    <div class="saverow">
+     <button class="buttonsave" (click)="saveSchedule()" [disabled]="scheduleSaving()">
+      @if (scheduleSaving()) {
+       Saving...
+      } @else {
+       Save Pickup Days
+      }
+     </button>
+    </div>
+   }
+  </section>
+ }
+</main> 

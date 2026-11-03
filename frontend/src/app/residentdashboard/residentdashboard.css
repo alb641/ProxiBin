@@ -24,6 +24,24 @@
  background-color: #086788;
  color: white;
 }
+.navbuttons{
+ display: flex;
+ gap: 12px;
+}
+.buttonprofile{
+ padding: 10px 22px;
+ font-size: 16px;
+ font-weight: bold;
+ color: white;
+ background-color: #086788;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ text-decoration: none;
+}
+.buttonprofile:hover{
+ background-color: #120309;
+ border-color: #120309;
+}
 .dashboard{
  min-height: 100vh;
  padding: 40px;
@@ -248,11 +266,6 @@
  display: flex;
  align-items: center;
  gap: 6px;
-}
-.biweeklynote{
- margin-top: 12px;
- font-size: 14px;
- color: #096B72;
 }
 .notruck{
  margin: 10px 0 0 0;
@@ -479,6 +492,24 @@
 }
 .requestreply p{
  margin: 4px 0 0 0;
+}
+.providertag{
+ display: inline-block;
+ padding: 4px 12px;
+ font-size: 13px;
+ font-weight: bold;
+ color: #086788;
+ background-color: #E6F5F9;
+ border: 2px solid #086788;
+ border-radius: 8px;
+}
+.municipaltag{
+ color: #120309;
+ background-color: #B6C949;
+ border-color: #B6C949;
+}
+.requestcard .providertag{
+ margin: 4px 0;
 }
 @media (max-width: 800px){
  .residentnav{

@@ -1,0 +1,218 @@
+.residentnav{
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: 20px 40px;
+ background-color: white;
+ border-bottom: 4px solid #07A0C3;
+ border-bottom: 4px solid #07A0C3;
+}
+.residentnav img{
+ height: 50px;
+}
+.navbuttons{
+ display: flex;
+ gap: 12px;
+}
+.buttonback{
+ padding: 10px 22px;
+ font-family: inherit;
+ font-size: 16px;
+ font-weight: bold;
+ color: white;
+ background-color: #086788;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ text-decoration: none;
+}
+.buttonback:hover{
+ background-color: #120309;
+ border-color: #120309;
+}
+.buttonsignout{
+ padding: 10px 22px;
+ font-family: inherit;
+ font-size: 16px;
+ font-weight: bold;
+ color: #086788;
+ background-color: white;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ cursor: pointer;
+}
+.buttonsignout:hover{
+ background-color: #086788;
+ color: white;
+}
+.profilepage{
+ min-height: 100vh;
+ padding: 40px;
+ background-color: #E6F5F9;
+ box-sizing: border-box;
+}
+.profilepage h1{
+ max-width: 750px;
+ margin: 0 auto 24px auto;
+ font-size: 36px;
+ color: #086788;
+}
+.message{
+ font-size: 18px;
+ text-align: center;
+ color: #120309;
+}
+.errorbox{
+ max-width: 600px;
+ margin: 0 auto;
+ padding: 20px;
+ font-weight: bold;
+ color: white;
+ background-color: #B00020;
+ border-radius: 8px;
+ text-align: center;
+}
+.profilecard{
+ max-width: 750px;
+ margin: 0 auto 24px auto;
+ padding: 28px; 
+ background-color: white;
+ border-top: 8px solid #086788;
+ border-radius: 12px;
+ box-sizing: border-box;
+}
+.profilecard h2{
+ margin: 0 0 18px 0;
+ font-size: 24px;
+ color: #086788;
+}
+.row{
+ display: flex;
+ flex-wrap: wrap;
+ gap: 16px;
+}
+.row .field{
+ flex: 1;
+ min-width: 150px;
+}
+.field{
+ margin-bottom: 18px;
+}
+.field label{
+ display: block;
+ margin-bottom: 6px;
+ font-weight: bold;
+ color: #120309;
+}
+.field input,
+.field select{
+ width: 100%;
+ padding: 10px;
+ font-family: inherit;
+ font-size: 16px;
+ color: #120309;
+ background-color: white;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ box-sizing: border-box;
+}
+.field input[readonly]{
+ background-color: #E6F5F9;
+ cursor: not-allowed;
+}
+.fielderror{
+ margin: 6px 0 0 0;
+ font-size: 14px;
+ font-weight: bold;
+ color: #B00020;
+}
+.alertoggle{
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ padding: 16px;
+ font-size: 18px;
+ font-weight: bold;
+ color: #120309;
+ border: 2px solid #086788;
+ border-radius: 8px;
+ cursor: pointer;
+}
+.alerttoggle input{
+ width: 20px;
+ height: 20px;
+}
+.status{
+ margin-left: auto;
+ padding: 4px 12px; 
+ font-size: 14px;
+ border-radius: 8px;
+}
+.on{
+ background-color: #B6C949;
+ color: #120309;
+}
+.off{
+ background-color: #E6F5F9;
+ color: #120309;
+}
+.schedule{
+ margin-bottom: 16px;
+ padding: 14px 16px;
+ background-color: #E6F5F9;
+ border-left: 6px solid #00A878;
+ border-radius: 8px;
+}
+.schedule p{
+ margin: 4px 0;
+}
+.recyclinginfo{
+ border-left-color: #097B72;
+}
+.note{
+ margin: 4px 0 12px 0;
+ font-size: 14px;
+ color: #096B72;
+}
+.error{
+ font-weight: bold;
+ color: #B00020;
+}
+.saved{
+ padding: 12px 14px;
+ font-weight: bold;
+ background-color: #B6C949;
+ border-radius: 8px;
+}
+.saverow{
+ margin-top: 16px;
+ text-align: right;
+}
+.buttonsave{
+ padding: 12px 24px;
+ font-family: inherit;
+ font-size: 16px;
+ font-weight: bold;
+ color: white;
+ background-color: #086788;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+}
+.buttonsave:hover{
+ background-color: #120309;
+}
+.buttonsave:disabled{
+ opacity: 0.5;
+ cursor: not-allowed;
+}
+@media (max-width: 800px){
+ .residentnav{
+  padding: 16px 20px;
+ }
+ .profilepage{
+  padding: 24px 16px;
+ }
+ .profilecard{
+  padding: 20px;
+ }
+}

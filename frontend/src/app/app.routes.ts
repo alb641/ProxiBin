@@ -9,6 +9,7 @@ import { Privacy } from './privacy/privacy';
 import { Residentdashboard } from './residentdashboard/residentdashboard';
 import { Proxibinadmin } from './proxibinadmin/proxibinadmin';
 import { residentGuard } from './residentguard';
+import { Profile } from './profile/profile';
 
 export const routes: Routes = [
  { path: '', component: Home },
@@ -20,4 +21,5 @@ export const routes: Routes = [
  { path: 'privacy', component: Privacy }, 
  { path: 'residentdashboard', component: Residentdashboard, canActivate: [residentGuard] },
  { path: 'proxibinadmin', component: Proxibinadmin, canActivate: [residentGuard] },
+ { path: 'profile', component: Profile, canActivate: [residentGuard] },
 ];

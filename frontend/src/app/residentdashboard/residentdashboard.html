@@ -1,6 +1,9 @@
 <header class="residentnav">
  <a routerLink="/residentdashboard"><img src="proxibin-logo.svg" alt="ProxiBin dashboard"></a>
- <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ <div class="navbuttons">
+  <a routerLink="/profile" class="buttonprofile">My Profile</a>
+  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ </div>
 </header>
 <main class="dashboard">
  @if(loading()) {
@@ -88,7 +91,7 @@
       @if (nextRecycling()) {
        {{ nextRecycling() }}
       } @else {
-        Every other {{ recyclingDay() }}
+        Every other Thursday
       }
       @if (pickupStatus('recycling')) {
        <span class="statusbadge"
@@ -138,15 +141,19 @@
      <span><span class="dot todaydot"></span> Today</span>
      <span><span class="checkmark keycheck">✓</span> Completed</span>
     </div>
-    @if (recyclingFrequency() === 'biweekly') {
-     <p class="biweeklynote">Biweekly recycling days will appear on the calendar soon.</p>
-    }
    </section>
   </div>
   <div class="ticketpanels">
    <section class="panel ticketpanel">
    <div class="panelheader">
     <h2>Report a Collection Issue</h2>
+    @if (formProviderReady()) {
+     @if (isRecyclingTicket()) {
+      <span class="providertag municipaltag">Municipal &middot; {{ recyclingProviderName }}</span>
+     } @else {
+      <span class="providertag">{{ haulerName() }}</span>
+     }
+    }
    </div>
    <div class="field">
     <label for="ticketType">Request Type</label>
@@ -260,6 +267,13 @@
           </span>
          </div>
          <p class="requestdate">Ref {{ ticketReference(ticket.id) }} &middot; Sent {{ formatDate(ticket.created_at) }}</p>
+         @if (ticket.haulers) {
+          @if (ticket.haulers.provider_type === 'Municipal/County recycling') {
+           <span class="providertag municipaltag">Municipal &middot; {{ ticket.haulers.name }}</span>
+          } @else {
+           <span class="providertag">{{ ticket.haulers.name }}</span>
+          }
+         }
          @if (ticket.collection_type) {
           <p><strong>Service:</strong> {{ ticket.collection_type === 'garbage' ? 'Garbage' : 'Recycling' }}</p>
          }

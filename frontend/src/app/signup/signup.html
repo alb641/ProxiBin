@@ -3,7 +3,7 @@
   <div class="cardtop">
    <div>
     @if (step() > 0) {
-     <p class="steplabel">Step {{ step() }} of 5</p>
+     <p class="steplabel">Step {{ step() }} of 6</p>
     }
     @if (step() === 0) {
      <h1>Create Your Account</h1>
@@ -168,7 +168,6 @@
     <h2>Your Pickup Schedule</h2>
     <div class="schedule">
      <p><strong>Garbage:</strong> Monday and Thursday</p>
-     <p><strong>Recycling:</strong> Wednesday, every other week</p>
     </div>
     <p class="question">Does this pickup schedule match your service?</p>
     <label class="bigcheckbox">
@@ -207,31 +206,6 @@
       }
      </div>
     </div>
-    <div class="row">
-     <div class="field">
-       <label for="recyclingDay">Recycling Pickup Day</label>
-       <select id="recyclingDay" [(ngModel)]="recyclingDay">
-        <option value="">Choose a day</option>
-        @for (day of weekdays; track day) {
-         <option [value]="day">{{ day }}</option>
-        }
-       </select>
-       @if (recyclingDayError) {
-        <p class="fielderror">{{ recyclingDayError }}</p>
-       }
-     </div>
-     <div class="field">
-      <label for="recyclingFrequency">Recycling Frequency</label>
-      <select id="recyclingFrequency" [(ngModel)]="recyclingFrequency">
-       <option value="">Choose how often</option>
-       <option value="weekly">Every week</option>
-       <option value="biweekly">Every other week</option>
-      </select>
-      @if (recyclingFrequencyError) {
-       <p class="fielderror">{{ recyclingFrequencyError }}</p>
-      }
-     </div>
-    </div>
    }
    @if (errorMessage()) {
     <p class="erro">{{ errorMessage() }}</p>
@@ -240,8 +214,28 @@
     <button class="buttonback" (click)="goBack()">Back</button>
     <button class="buttoncontinue" (click)="saveStep3()">Save &amp; Continue</button>
    </div>
-  }   
+  }
   @if (step() === 4) {
+   <h1>Recycling in Your Area</h1>
+   <p class="subtitle">You don't need to choose a recycling day.</p>
+   <p class="success">Good news! {{ recyclingProviderName }} handles recycling for <span class="townname">{{ town }}</span>.</p>
+   <div class="schedule">
+    <p><strong>Recycling pickup:</strong> Every other Thursday</p>
+    <p>Your recycling days will show on your dashboard calendar.</p>
+   </div>
+   <label class="bigcheckbox">
+    <input type="checkbox" [(ngModel)]="recyclingConfirmed">
+    <span>I understand that {{ recyclingProviderName }} collects my recycling.</span>
+   </label>
+   @if (recyclingConfirmError) {
+    <p class="fielderror">{{ recyclingConfirmError }}</p>
+   } 
+   <div class="stepbuttons">
+    <button class="buttonback" (click)="goBack()">Back</button>
+    <button class="buttoncontinue" (click)="confirmRecycling()">Continue</button>
+   </div>
+  }   
+  @if (step() === 5) {
    <h1>Email Alerts</h1>
    <p class="subtitle">Choose whether you would like to be contacted by ProxiBin to send you email updates.</p>
    <div class="alertinfo">
@@ -270,7 +264,7 @@
     <button class="buttoncontinue" (click)="saveStep4()">Save &amp; Continue</button>
    </div>
   }    
-  @if (step() === 5) {
+  @if (step() === 6) {
    @if (setupComplete()) {
     <h1>You Are All Set!</h1>
     <p class="subtitle">Your ProxiBin setup is complete. Here is a summary of what you have saved.</p>
@@ -284,14 +278,7 @@
       and {{ garbageDay2 }}
      }
     </p>
-    <p>
-     <strong>Recycling:</strong> {{ recyclingDay }},
-     @if (recyclingFrequency === 'weekly') {
-       every week
-     } @else {
-       every other week
-     }
-    </p>
+    <p><strong>Recycling:</strong> {{ recyclingProviderName }}, every other Thursday</p>
     <p>
      <strong>Email Alerts:</strong>
      @if (emailAlerts) {
