@@ -11,8 +11,8 @@ const APPROACHING_THRESHOLD = 5
 const DRY_RUN = process.argv.includes("--dry-run");
 
 // Simulated driving settings
-const TRAVEL_TIME_MS = 10000;
-const POSITION_UPDATE_MS = 2000;
+const TRAVEL_TIME_MS = 90000; // 60 seconds per journey
+const POSITION_UPDATE_MS = 2000; // Update every 2 seconds
 const STEPS_PER_TRIP = TRAVEL_TIME_MS / POSITION_UPDATE_MS;
 
 // Connect to Supabase
@@ -718,25 +718,45 @@ if (!updated) {
     return;
   }
 
-  if (firstRun.status === "scheduled") {
-    const { data, error: resetError } = await supabase
-      .from("truck_positions")
-      .update({
-        lat: truck.start_lat,
-        lng: truck.start_lng,
-        updated_at: new Date().toISOString()
-      })
-      .eq("truck_id", truck.id)
-      .select("id")
-      .single();
+// Always initialize the truck at its depot,
 
-    if (resetError || !data) {
-      console.error("Could not initialize truck at depot.");
-      return;
-    }
+const depotLat = Number(truck.start_lat);
+const depotLng = Number(truck.start_lng);
 
-    console.log("Truck starting at depot:", truck.truck_name);
-  }
+if (
+  truck.start_lat == null ||
+  truck.start_lng == null ||
+  !Number.isFinite(depotLat) ||
+  !Number.isFinite(depotLng)
+) {
+  console.error("Invalid depot coordinates:", truck.truck_name);
+  return;
+}
+
+const { data, error: resetError } = await supabase
+  .from("truck_positions")
+  .update({
+    lat: depotLat,
+    lng: depotLng,
+    current_route_order: null,
+    current_collection_type: "garbage",
+    updated_at: new Date().toISOString()
+  })
+  .eq("truck_id", truck.id)
+  .select("id")
+  .single();
+
+if (resetError || !data) {
+  console.error(
+    "Could not initialize truck at depot:",
+    resetError?.message
+  );
+  return;
+}
+
+console.log("Truck starting at depot:", truck.truck_name);
+
+  
 
   
   // Mark the collection run as started before movement
