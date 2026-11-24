@@ -11,6 +11,15 @@ export const residentGuard = async () => {
  if (!data.session) {
   return router.createUrlTree(['/signin']);
  }
+
+ const { data: admin } = await client 
+  .from('admins')
+  .select('id')
+  .eq('user_id', data.session.user.id)
+  .maybeSingle();
+ if (admin) {
+  return router.createUrlTree(['/proxibinadmin']);
+ } 
  
  const { data: resident } = await client
   .from('residents')

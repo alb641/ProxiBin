@@ -1,0 +1,169 @@
+<header class="adminnav">
+ <a routerLink="/proxibinadmin"><img src="proxibin-logo.svg" alt="ProxiBin dispatcher dashboard"></a>
+ <nav class="adminlinks">
+  <a routerLink="/proxibinadmin" class="navbutton">Overview</a>
+  <a routerLink="/proxibinadmin/tickets" class="navbutton active">Service Tickets</a>
+  <a routerLink="/proxibinadmin/residents" class="navbutton">Residents</a>
+  <a routerLink="/proxibinadmin/providers" class="navbutton">Providers</a>
+  <a routerLink="/proxibinadmin/reports" class="navbutton">Reports</a>
+  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ </nav>
+</header>
+<main class="adminpage">
+ <section class="admintitle">
+  <div>
+   <h1>Service Tickets</h1>
+   <p>All resident submitted tickets. Select a ticket to see its details.</p>
+  </div>
+ </section>
+ @if (loading()) {
+  <p class="message">Loading tickets...</p>
+ } @else if (errorMessage()) {
+  <div class="errorbox">
+   <p>{{ errorMessage() }}</p>
+  </div>
+ } @else {
+  <section class="panel filters">
+   <div class="filter">
+    <label for="collectionFilter">Collection Type</label>
+    <select id="collectionFilter" [(ngModel)]="collectionFilter" (change)="applyFilters()">
+     <option value="">All</option>
+     <option value="garbage">Garbage</option>
+     <option value="recycling">Recycling</option>
+    </select>
+   </div>
+   <div class="filter">
+    <label for="subtypeFilter">Issue Type</label>
+    <select id="subtypeFilter" [(ngModel)]="subtypeFilter" (change)="applyFilters()">
+     <option value="">All issue types</option>
+     @for (type of ticketTypes; track type.value) {
+      <option [value]="type.value">{{ type.label }}</option>
+     }
+    </select>
+   </div>
+   <div class="filter">
+    <label for="statusFilter">Status</label>
+    <select id="statusFilter" [(ngModel)]="statusFilter" (change)="applyFilters()">
+     <option value="">All statuses</option>
+     @for (status of statusOptions; track status) {
+      <option [value]="status">{{ statusLabel(status) }}</option>
+     }
+    </select>
+   </div>
+   <div class="filter">
+    <label for="providerFilter">Provider</label>
+    <select id="providerFilter" [(ngModel)]="providerFilter" (change)="applyFilters()">
+     <option value="">All providers</option>
+     @for (provider of providers; track provider.id) {
+      <option [value]="provider.id">{{ provider.name }}</option>
+     }
+    </select>
+   </div>
+   <div class="filter">
+    <label for="fromDate">From</label>
+    <input id="fromDate" type="date" [(ngModel)]="fromDate" (change)="applyFilters()">
+   </div>
+   <div class="filter">
+    <label for="toDate">To</label>
+    <input id="toDate" type="date" [(ngModel)]="toDate" (change)="applyFilters()">
+   </div>
+   <div class="filter">
+    <label for="sortOrder">Sort</label>
+    <select id="sortOrder" [(ngModel)]="sortOrder" (change)="applyFilters()">
+     <option value="newest">Newest first</option>
+     <option value="oldest">Oldest first</option>
+    </select>
+   </div>
+   <button class="buttonclear" (click)="resetFilters()">Reset Filters</button>
+  </section>
+  <div class="ticketlayout">
+   <section class="panel">
+    <p class="countline">{{ shownTickets().length }} {{ shownTickets().length === 1 ? 'ticket' : 'tickets' }}</p>
+    @if (shownTickets().length === 0) {
+     <p class="emptytext">No tickets match these filters.</p>
+    } @else {
+     <div class="tablewrap">
+      <table>
+       <thead>
+        <tr>
+         <th>Ticket ID</th>
+         <th>Resident</th>
+         <th>Address</th>
+         <th>Collection</th>
+         <th>Issue Type</th>
+         <th>Provider</th>
+         <th>Submitted</th>
+         <th>Status</th>
+        </tr>
+       </thead>
+       <tbody>
+        @for (ticket of shownTickets(); track ticket.id) {
+         <tr class="ticketrow" [class.selectedrow]="selectedTicket()?.id === ticket.id" (click)="selectTicket(ticket)">
+          <td class="ticketid">{{ ticketReference(ticket.id) }}</td>
+          <td>{{ residentName(ticket) }}</td>
+          <td class="address">{{ residentAddress(ticket) }}</td>
+          <td>
+           <span class="typetag" [class.garbagetag]="collectionTypeOf(ticket) === 'garbage'" [class.recyclingtag]="collectionTypeOf(ticket) === 'recycling'">
+            {{ collectionTypeOf(ticket) === 'garbage' ? 'Garbage' : 'Recycling' }}
+           </span>
+          </td>
+          <td>{{ ticketTypeLabel(ticket.ticket_type) }}</td>
+          <td>{{ providerName(ticket) }}</td>
+          <td>{{ formatDate(ticket.created_at) }}</td>
+          <td>
+           <span class="statusbadge" [class.resolved]="ticket.status === 'resolved'">{{ statusLabel(ticket.status) }}</span>
+          </td>
+         </tr>
+        }
+       </tbody>
+      </table>
+     </div>
+    }
+   </section>
+   <section class="panel detailpanel">
+    @if (selectedTicket()) {
+     <div class="detailtop">
+      <h2>{{ ticketTypeLabel(selectedTicket().ticket_type) }}</h2>
+      <button class="buttonclose" (click)="closeDetails()" aria-label="Close details">&times;</button>
+     </div>
+     <p class="ref">Ticket {{ ticketReference(selectedTicket().id) }}</p>
+     <div class="detailtags">
+      <span class="typetag" [class.garbagetag]="collectionTypeOf(selectedTicket()) === 'garbage'" [class.recyclingtag]="collectionTypeOf(selectedTicket()) === 'recycling'">
+       {{ collectionTypeOf(selectedTicket()) === 'garbage' ? 'Garbage' : 'Recycling' }}
+      </span>
+      <span class="statusbadge" [class.resolved]="selectedTicket().status === 'resolved'">{{ statusLabel(selectedTicket().status) }}</span>
+     </div>
+     <div class="details">
+      <p><strong>Resident:</strong> {{ residentName(selectedTicket()) }}</p>
+      <p><strong>Address:</strong> <span class="address"> {{ residentAddress(selectedTicket()) }}</span></p>
+      <p><strong>Provider:</strong> {{ providerName(selectedTicket()) }}</p>
+      <p><strong>Submitted:</strong> {{ formatDate(selectedTicket().created_at) }}</p>
+      @if (selectedTicket().bin_type) {
+       <p><strong>Bin:</strong> {{ selectedTicket().bin_type === 'garbage' ? 'Garbage bin' : 'Recycling bin' }}</p>
+      }
+      @if (selectedTicket().missed_date) {
+       <p><strong>Missed date:</strong> {{ formatDate(selectedTicket().missed_date) }}</p>
+      }
+      @if (selectedTicket().pickup_date) {
+       <p><strong>Requested pickup:</strong> {{ formatDate(selectedTicket().pickup_date) }}</p>
+      }
+     </div>
+     <h3>Resident's description</h3>
+     @if (selectedTicket().description) {
+      <p class="description">{{ selectedTicket().description }}</p>
+     } @else {
+      <p class="description">No description was given.</p>
+     }
+     @if (selectedTicket().reply_text) {
+      <div class="reply">
+       <strong>Reply:</strong>
+       <p>{{ selectedTicket().reply_text }}</p>
+      </div>
+     }
+    } @else {
+     <p class="emptytext">Click a ticket in the list to see its details here.</p>
+    }
+   </section>
+  </div>
+ }
+</main>

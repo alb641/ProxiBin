@@ -1,1 +1,78 @@
-<p>haulerdashboard works!</p>
+<header class="adminnav">
+ <a routerLink="/proxibinadmin"><img src="proxibin-logo.svg" alt="ProxiBin dispatcher dashboard"></a>
+ <nav class="adminlinks">
+  <a routerLink="/proxibinadmin" class="navbutton active">Overview</a>
+  <a routerLink="/proxibinadmin/tickets" class="navbutton">Service Tickets</a>
+  <a routerLink="/proxibinadmin/residents" class="navbutton">Residents</a>
+  <a routerLink="/proxibinadmin/providers" class="navbutton">Providers</a>
+  <a routerLink="/proxibinadmin/reports" class="navbutton">Reports</a>
+  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ </nav>
+</header>
+<main class="adminpage">
+ <section class="admintitle">
+  <div>
+   <h1>Dispatcher Dashboard</h1>
+   <p>{{ todayLabel }} &middot; Service area: Watchung, NJ &middot; Signed in as {{ adminEmail }}</p>
+  </div>
+  <span class="simlabel">Prototype &middot; Simulated collection data</span>
+ </section>
+ @if (loading()) {
+  <p class="message">Loading the dispatcher dashboard...</p>
+ } @else if (errorMessage()) {
+  <div class="errorbox">
+   <p>{{ errorMessage() }}</p>
+  </div>
+ } @else {
+  <section class="metricgrid">
+   <div class="metriccard">
+    <span class="metriclabel">Total Residents</span>
+    <strong class="metricnumber">{{ totalResidents() }}</strong>
+   </div>
+   <div class="metriccard">
+    <span class="metriclabel">Open Tickets</span>
+    <strong class="metricnumber">{{ openTickets() }}</strong>
+   </div>
+   <div class="metriccard">
+    <span class="metriclabel">Active Collections</span>
+    <strong class="metricnumber">{{ activeGarbage() + activeRecycling() }}</strong>
+    <div class="metricbreakdown">
+     <span><span class="dot garbagedot"></span> Garbage: {{ activeGarbage() }}</span>
+     <span><span class="dot recyclingdot"></span> Recycling: {{ activeRecycling() }}</span>
+    </div>
+   </div>
+  </section>
+  <section class="panel">
+   <h2>Collection Overview &mdash; Today</h2>
+   <div class="collectiongrid">
+    <div class="collectioncard garbagecard">
+     <span class="typetag garbagetag">Garbage Collection</span>
+     <strong class="collectionnumber">{{ garbageScheduled() }}</strong>
+     <span class="collectiontext">residents scheduled for garbage pickup today</span>
+     <span class="collectionprovider">{{ haulers.length }} private haulers</span>
+    </div>
+    <div class="collectioncard recyclingcard">
+     <span class="typetag recyclingtag">Recycling Collection</span>
+     <strong class="collectionnumber">{{ recyclingScheduled() }}</strong>
+     <span class="collectiontext">residents scheduled for recycling pickup today</span>
+     <span class="collectionprovider">{{ recyclingProviderName }}</span>
+    </div>
+   </div>
+  </section>
+  <section class="panel">
+   <div class="panelheader">
+    <h2>Collections in Progress</h2>
+    <span class="simlabel">Simulated data</span>
+   </div>
+   @if (activeGarbage() + activeRecycling() === 0) {
+    <p class="emptytext">No collections are in progress right now. Trucks appear here when a route starts.</p>
+   }
+   <div id="adminmap" class="map"></div>
+   <div class="maplegend">
+    <span><span class="legendring garbagering"></span> Garbage</span>
+    <span><span class="legendring recyclingring"></span> Recycling</span>
+    <span>Click a truck for details</span>
+   </div>
+  </section>
+ }
+</main>

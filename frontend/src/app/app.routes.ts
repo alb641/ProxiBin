@@ -10,6 +10,11 @@ import { Residentdashboard } from './residentdashboard/residentdashboard';
 import { Proxibinadmin } from './proxibinadmin/proxibinadmin';
 import { residentGuard } from './residentguard';
 import { Profile } from './profile/profile';
+import { adminGuard } from './adminguard';
+import { Admintickets } from './admintickets/admintickets';
+import { Adminresidents } from './adminresidents/adminresidents';
+import { Adminproviders } from './adminproviders/adminproviders';
+import { Adminreports } from './adminreports/adminreports';
 
 export const routes: Routes = [
  { path: '', component: Home },
@@ -20,6 +25,10 @@ export const routes: Routes = [
  { path: 'signup', component: Signup },
  { path: 'privacy', component: Privacy }, 
  { path: 'residentdashboard', component: Residentdashboard, canActivate: [residentGuard] },
- { path: 'proxibinadmin', component: Proxibinadmin, canActivate: [residentGuard] },
+ { path: 'proxibinadmin', component: Proxibinadmin, canActivate: [adminGuard] },
  { path: 'profile', component: Profile, canActivate: [residentGuard] },
+ { path: 'proxibinadmin/tickets', component: Admintickets, canActivate: [adminGuard] },
+ { path: 'proxibinadmin/residents', component: Adminresidents, canActivate: [adminGuard] },
+ { path: 'proxibinadmin/providers', component: Adminproviders, canActivate: [adminGuard] },
+ { path: 'proxibinadmin/reports', component: Adminreports, canActivate: [adminGuard] },
 ];

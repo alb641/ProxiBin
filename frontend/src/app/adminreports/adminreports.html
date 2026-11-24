@@ -1,0 +1,74 @@
+<header class="adminnav">
+ <a routerLink="/proxibinadmin"><img src="proxibin-logo.svg" alt="ProxiBin dispatcher dashboard"></a>
+ <nav class="adminlinks">
+  <a routerLink="/proxibinadmin" class="navbutton">Overview</a>
+  <a routerLink="/proxibinadmin/tickets" class="navbutton">Service Tickets</a>
+  <a routerLink="/proxibinadmin/residents" class="navbutton">Residents</a>
+  <a routerLink="/proxibinadmin/providers" class="navbutton">Providers</a>
+  <a routerLink="/proxibinadmin/reports" class="navbutton active">Reports</a>
+  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ </nav>
+</header>
+<main class="adminpage">
+ <section class="admintitle">
+  <div>
+   <h1>Reports</h1>
+   <p>Based on resident submitted tickets. Simulated truck activity is not included.</p>
+  </div>
+ </section>
+ @if (loading()) {
+  <p class="message">Loading reports...</p>
+ } @else if (errorMessage()) {
+  <div class="errorbox">
+   <p>{{ errorMessage() }}</p>
+  </div>
+ } @else if (totalTickets() === 0) {
+  <section class="panel">
+   <p class="emptytext">No tickets have been submitted yet.</p>
+  </section>
+ } @else {
+  <p class="countline">{{ totalTickets() }} {{ totalTickets() === 1 ? 'ticket' : 'tickets' }} in total</p>
+  <div class="reportgrid">
+   <section class="panel">
+    <h2>By Collection Type</h2>
+    @for (row of byCollection(); track row.label) {
+     <div class="reportrow">
+      <span class="reportlabel">{{ row.label }}</span>
+      <div class="bartrack"><div class="bar" [class.garbagebar]="row.kind === 'garbage'" [class.recyclingbar]="row.kind === 'recycling'" [style.width]="barWidth(row.count)"></div></div>
+      <strong class="reportcount">{{ row.count }}</strong>
+     </div>
+    }
+   </section>
+   <section class="panel">
+    <h2>By Issue Type</h2>
+    @for (row of byIssue(); track row.label) {
+     <div class="reportrow">
+      <span class="reportlabel">{{ row.label }}</span>
+      <div class="bartrack"><div class="bar" [style.width]="barWidth(row.count)"></div></div>
+      <strong class="reportcount">{{ row.count }}</strong>
+     </div>
+    }
+   </section>
+   <section class="panel">
+    <h2>By Status</h2>
+    @for (row of byStatus(); track row.label) {
+     <div class="reportrow">
+      <span class="reportlabel">{{ row.label }}</span>
+      <div class="bartrack"><div class="bar" [style.width]="barWidth(row.count)"></div></div>
+      <strong class="reportcount">{{ row.count }}</strong>
+     </div>
+    }
+   </section>
+   <section class="panel">
+    <h2>Reported Issues by Provider</h2>
+    @for (row of byProvider(); track row.label) {
+     <div class="reportrow">
+      <span class="reportlabel">{{ row.label }}</span>
+      <div class="bartrack"><div class="bar" [class.garbagebar]="row.kind === 'garbage'" [class.recyclingbar]="row.kind === 'recycling'" [style.width]="barWidth(row.count)"></div></div>
+      <strong class="reportcount">{{ row.count }}</strong>
+     </div>
+    }
+   </section>
+  </div>
+ }
+</main>

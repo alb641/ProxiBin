@@ -77,6 +77,15 @@ export class Signup {
     return;
    }
    this.userId = data.session.user.id;
+   const { data: admin } = await client
+    .from('admins')
+    .select('id')
+    .eq('user_id', this.userId)
+    .maybeSingle();
+   if (admin) {
+    this.router.navigate(['/proxibinadmin']);
+    return;
+   }
    const { data: resident } = await client
      .from('residents')
      .select('*')

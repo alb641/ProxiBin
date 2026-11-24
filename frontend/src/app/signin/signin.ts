@@ -84,6 +84,15 @@ export class Signin {
 
  async goToRightPage(userId: string) {
   const client = this.supabaseService.getClient();
+  const { data: admin } = await client
+   .from('admins')
+   .select('id')
+   .eq('user_id', userId)
+   .maybeSingle();
+  if (admin) {
+   this.router.navigate(['/proxibinadmin']);
+   return;
+  }
   const { data: resident } = await client
    .from('residents')
    .select('onboarding_complete')

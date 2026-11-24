@@ -12,3 +12,17 @@ body{
  width: 36px;
  height: 36px;
 }
+.garbagemarker{
+ border-radius: 50%;
+ box-shadow: 0 0 0 3px #00A878;
+}
+.recyclingmarker{
+ border-radius: 50%;
+ box-shadow: 0 0 0 3px #096B72;
+}
+.mapboxgl-popup-content{
+ font-family: Arial, sans-serif;
+ font-size: 14px;
+ line-height: 1.5;
+ color: #120309;
+}

@@ -1,0 +1,56 @@
+<header class="adminnav">
+ <a routerLink="/proxibinadmin"><img src="proxibin-logo.svg" alt="ProxiBin dispatcher dashboard"></a>
+ <nav class="adminlinks">
+  <a routerLink="/proxibinadmin" class="navbutton">Overview</a>
+  <a routerLink="/proxibinadmin/tickets" class="navbutton">Service Tickets</a>
+  <a routerLink="/proxibinadmin/residents" class="navbutton">Residents</a>
+  <a routerLink="/proxibinadmin/providers" class="navbutton active">Providers</a>
+  <a routerLink="/proxibinadmin/reports" class="navbutton">Reports</a>
+  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ </nav>
+</header>
+<main class="adminpage">
+ <section class="admintitle">
+  <div>
+   <h1>Providers</h1>
+   <p>Collection providers serving Watchung, NJ.</p>
+  </div>
+ </section>
+ @if (loading()) {
+  <p class="message">Loading providers...</p>
+ } @else if (errorMessage()) {
+  <div class="errorbox">
+   <p>{{ errorMessage() }}</p>
+  </div>
+ } @else {
+  <section class="panel">
+   <h2>Garbage Haulers</h2>
+   <div class="providergrid">
+    @for (provider of garbageProviders(); track provider.id) {
+     <div class="providercard garbageprovider">
+      <span class="typetag garbagetag">Garbage</span>
+      <strong class="providername">{{ provider.name }}</strong>
+      <span class="providertype">{{ provider.provider_type }}</span>
+      <span><b>{{ residentCount(provider) }}</b> residents</span>
+      <span><b>{{ truckCount(provider) }}</b> active trucks</span>
+     </div>
+    }
+   </div>
+  </section>
+  <section class="panel">
+   <h2>Recycling</h2>
+   <div class="providergrid">
+    @for (provider of recyclingProviders(); track provider.id) {
+     <div class="providercard recyclingprovider">
+      <span class="typetag recyclingtag">Recycling</span>
+      <strong class="providername">{{ provider.name }}</strong>
+      <span class="providertype">{{ provider.provider_type }}</span>
+      <span><b>{{ residentCount(provider) }}</b> residents (all of Watchung)</span>
+      <span>Every other Thursday</span>
+      <span><b>{{ truckCount(provider) }}</b> active trucks</span>
+     </div>
+    }
+   </div>
+  </section>
+ }
+</main>

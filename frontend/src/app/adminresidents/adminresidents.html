@@ -1,0 +1,92 @@
+<header class="adminnav">
+ <a routerLink="/proxibinadmin"><img src="proxibin-logo.svg" alt="ProxiBin dispatcher dashboard"></a>
+ <nav class="adminlinks">
+  <a routerLink="/proxibinadmin" class="navbutton">Overview</a>
+  <a routerLink="/proxibinadmin/tickets" class="navbutton">Service Tickets</a>
+  <a routerLink="/proxibinadmin/residents" class="navbutton active">Residents</a>
+  <a routerLink="/proxibinadmin/providers" class="navbutton">Providers</a>
+  <a routerLink="/proxibinadmin/reports" class="navbutton">Reports</a>
+  <button class="buttonsignout" (click)="signOut()">Sign Out</button>
+ </nav>
+</header>
+<main class="adminpage">
+ <section class="admintitle">
+  <div>
+   <h1>Residents</h1>
+   <p>Registered residents and their garbage hauler. Recycling for all residents is collected every other Thursday by {{ recyclingProviderName }}.</p>
+  </div>
+ </section>
+ @if (loading()) {
+  <p class="message">Loading residents...</p>
+ } @else if (errorMessage()) {
+  <div class="errorbox">
+   <p>{{ errorMessage() }}</p>
+  </div>
+ } @else {
+  <section class="panel filters">
+   <div class="filter">
+    <label for="searchText">Search</label>
+    <input id="searchText" type="text" placeholder="Name or address" [(ngModel)]="searchText" (input)="applyFilters()">
+   </div>
+   <div class="filter">
+    <label for="haulerFilter">Garbage Hauler</label>
+    <select id="haulerFilter" [(ngModel)]="haulerFilter" (change)="applyFilters()">
+     <option value="">All haulers</option>
+     @for (hauler of haulers; track hauler.id) {
+      <option [value]="hauler.id">{{ hauler.name }}</option>
+     }
+    </select>
+   </div>
+   <button class="buttonclear" (click)="resetFilters()">Reset Filters</button>
+  </section>
+  <section class="panel">
+   <p class="countline">{{ shownResidents().length }} {{ shownResidents().length === 1 ? 'resident' : 'residents' }}</p>
+   @if (shownResidents().length === 0) {
+    <p class="emptytext">No residents match these filters.</p>
+   } @else {
+    <div class="tablewrap">
+     <table>
+      <thead>
+       <tr>
+        <th>Name</th>
+        <th>Service Address</th>
+        <th>Garbage Hauler</th>
+        <th>Garbage Days</th>
+        <th>Recycling Service</th>
+        <th>Account</th>
+       </tr>
+      </thead>
+      <tbody>
+       @for (resident of shownResidents(); track resident.id) {
+        <tr>
+         <td>{{ resident.first_name }} {{ resident.last_name }}</td>
+         <td class="address">{{ resident.address_text }}</td>
+         <td>
+          <div class="servicecell">
+           <span class="typetag garbagetag">Garbage</span>
+           <span>{{ garbageHaulerName(resident) }}</span>
+          </div>
+         </td>
+         <td>{{ garbageDaysText(resident) }}</td>
+         <td>
+          <div class="servicecell">
+           <span class="typetag recyclingtag">Recycling</span>
+           <span>{{ recyclingProviderName }}</span>
+          </div>
+         </td>
+         <td>
+          @if (resident.is_active === false) {
+           <span class="inactive">Inactive</span>
+          } @else {
+           <span class="active">Active</span>
+          }
+         </td>
+        </tr>
+       }
+      </tbody>
+     </table>
+    </div>
+   }
+  </section>
+ }
+</main>
