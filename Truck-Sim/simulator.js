@@ -11,7 +11,7 @@ const APPROACHING_THRESHOLD = 5
 const DRY_RUN = process.argv.includes("--dry-run");
 
 // Simulated driving settings
-const TRAVEL_TIME_MS = 90000; // 60 seconds per journey
+const TRAVEL_TIME_MS = 10000; // 60 seconds per journey
 const POSITION_UPDATE_MS = 2000; // Update every 2 seconds
 const STEPS_PER_TRIP = TRAVEL_TIME_MS / POSITION_UPDATE_MS;
 
@@ -121,12 +121,36 @@ async function driveToStop(truck, start, destination, pickup) {
     );
   }
 
-  const totalDistance = distances[distances.length - 1];
+ const totalDistance = distances[distances.length - 1];
 
-  if (totalDistance === 0) {
-    console.error("Route has no travel distance.");
+if (totalDistance === 0) {
+  console.log(
+    `Truck already at pickup location: ${truck.truck_name}`
+  );
+
+  const { data, error } = await supabase
+    .from("truck_positions")
+    .update({
+      lat: destination.lat,
+      lng: destination.lng,
+      current_route_order: pickup.route_order,
+      current_collection_type: "garbage",
+      updated_at: new Date().toISOString()
+    })
+    .eq("truck_id", truck.id)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error(
+      "Could not update truck position:",
+      error?.message || "Position not found"
+    );
     return false;
   }
+
+  return true;
+}
 
   // Five position updates over approximately 10 seconds
   for (let step = 1; step <= STEPS_PER_TRIP; step++) {
@@ -242,11 +266,13 @@ async function updateApproachingStatuses(truckId, runId) {
 // Main function responsible for truck movement
 async function startSimulator() {
 
-  // Retrieve all active trucks from Supabase
-  const { data: trucks, error: truckError } = await supabase
+
+const { data: trucks, error: truckError } = await supabase
   .from("trucks")
   .select("id, hauler_id, truck_name, start_lat, start_lng")
-  .eq("is_active", true);
+  .eq("is_active", true)
+  .neq("id", "cfc9784a-97fe-4933-b872-fbbb1cfc592e");
+
 
   if (truckError) {
     console.error("Error loading trucks:", truckError.message);
@@ -718,47 +744,58 @@ if (!updated) {
     return;
   }
 
-// Always initialize the truck at its depot,
 
-const depotLat = Number(truck.start_lat);
-const depotLng = Number(truck.start_lng);
+// Initialize at depot only when starting a new run
+if (firstRun.status === "scheduled") {
 
-if (
-  truck.start_lat == null ||
-  truck.start_lng == null ||
-  !Number.isFinite(depotLat) ||
-  !Number.isFinite(depotLng)
-) {
-  console.error("Invalid depot coordinates:", truck.truck_name);
-  return;
-}
+  const depotLat = Number(truck.start_lat);
+  const depotLng = Number(truck.start_lng);
 
-const { data, error: resetError } = await supabase
-  .from("truck_positions")
-  .update({
-    lat: depotLat,
-    lng: depotLng,
-    current_route_order: null,
-    current_collection_type: "garbage",
-    updated_at: new Date().toISOString()
-  })
-  .eq("truck_id", truck.id)
-  .select("id")
-  .single();
+  if (
+    truck.start_lat == null ||
+    truck.start_lng == null ||
+    !Number.isFinite(depotLat) ||
+    !Number.isFinite(depotLng)
+  ) {
+    console.error("Invalid depot coordinates:", truck.truck_name);
+    return;
+  }
 
-if (resetError || !data) {
-  console.error(
-    "Could not initialize truck at depot:",
-    resetError?.message
+  const { data, error: resetError } = await supabase
+    .from("truck_positions")
+    .update({
+      lat: depotLat,
+      lng: depotLng,
+      current_route_order: null,
+      current_collection_type: "garbage",
+      updated_at: new Date().toISOString()
+    })
+    .eq("truck_id", truck.id)
+    .select("id")
+    .single();
+
+  if (resetError || !data) {
+    console.error(
+      "Could not initialize truck at depot:",
+      resetError?.message
+    );
+    return;
+  }
+
+  console.log("Truck starting at depot:", truck.truck_name);
+
+} else if (firstRun.status === "in_progress") {
+
+  console.log(
+    "Resuming truck from its last recorded position:",
+    truck.truck_name
   );
+
+} else {
+  console.error("Cannot resume collection run:", firstRun.status);
   return;
 }
 
-console.log("Truck starting at depot:", truck.truck_name);
-
-  
-
-  
   // Mark the collection run as started before movement
   if (firstRun.status === "scheduled") {
     const { data: startedRun, error: startError } = await supabase

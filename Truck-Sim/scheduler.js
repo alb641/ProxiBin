@@ -39,12 +39,20 @@ async function main() {
   const start = process.env.SCHEDULE_START_DATE || addDays(todayNY(), 1);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(start) || isoDate(parseDate(start))!==start) throw new Error('Invalid SCHEDULE_START_DATE');
   console.log(`${DRY_RUN?'DRY RUN':'SCHEDULING'} ${start} through ${addDays(start,DAYS_AHEAD-1)}`);
-  const [residents,trucks,progress,runs]=await Promise.all([
-    allRows('residents','id,hauler_id,lat,lng,garbage_day_1,garbage_day_2'),
+  
+const [residents, trucks, progress, runs, recyclingDates] =
+  await Promise.all([
+    allRows('residents','id,hauler_id,lat,lng,address_text,is_active,garbage_day_1,garbage_day_2'),
+
     allRows('trucks','id,hauler_id,truck_name,is_active'),
+
     allRows('collection_progress','id,resident_id,truck_id,collection_type,schedule_date,route_order,collection_run_id,status'),
-    allRows('collection_runs','id,truck_id,collection_type,schedule_date,status')
+
+    allRows('collection_runs','id,truck_id,collection_type,schedule_date,status'),
+
+    allRows('recycling_schedule','pickup_date,provider_id')
   ]);
+
   const activeByHauler=new Map();
   for(const t of trucks.filter(t=>t.is_active)) {
     if(!activeByHauler.has(t.hauler_id)) activeByHauler.set(t.hauler_id,[]);
@@ -52,9 +60,10 @@ async function main() {
   }
   const existing=new Set(progress.map(p=>key(p.resident_id,p.collection_type,p.schedule_date)));
   const grouped=new Map();
+
   for(let i=0;i<DAYS_AHEAD;i++) {
     const date=addDays(start,i);
-    for(const resident of residents) {
+    for(const resident of residents.filter(r => r.is_active === true)) {
       for(const type of ['garbage']) {
         if(!due(resident,date) || existing.has(key(resident.id,type,date))) continue;
         if(resident.lat==null || resident.lng==null) { console.warn(`Skip ${resident.id}: missing coordinates`); continue; }
@@ -67,6 +76,57 @@ async function main() {
       }
     }
   }
+
+  // Schedule recycling using the official provider dates.
+  for (let i = 0; i < DAYS_AHEAD; i++) {
+    const date = addDays(start, i);
+
+    const scheduledProviders = new Set(
+      recyclingDates
+        .filter(row => row.pickup_date === date)
+        .map(row => row.provider_id)
+    );
+
+    for (const providerId of scheduledProviders) {
+      const assigned = activeByHauler.get(providerId) || [];
+
+      if (assigned.length !== 1) {
+        console.warn(
+          `Skip recycling ${date}: expected one active truck for provider ${providerId}, got ${assigned.length}`
+        );
+        continue;
+      }
+
+      const truck = assigned[0];
+      const type = 'recycling';
+      const groupKey = key(truck.id, type, date);
+
+      for (const resident of residents) {
+        if (resident.is_active !== true) continue;
+
+        const address = resident.address_text || '';
+        if (
+          !address.toLowerCase().includes('watchung') ||
+          !address.includes('07069')
+        ) continue;
+
+        if (resident.lat == null || resident.lng == null) continue;
+        if (existing.has(key(resident.id, type, date))) continue;
+
+        if (!grouped.has(groupKey)) {
+          grouped.set(groupKey, {
+            truck,
+            type,
+            date,
+            residents: []
+          });
+        }
+
+        grouped.get(groupKey).residents.push(resident);
+      }
+    }
+  }
+
   let inserted=0,skipped=0;
   for(const group of grouped.values()) {
     const {truck,type,date}=group;
